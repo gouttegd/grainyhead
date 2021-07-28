@@ -1,5 +1,5 @@
 # grainyhead - Helper tools for GitHub
-# Copyright (C) 2021 Damien Goutte-Gattat
+# Copyright © 2021 Damien Goutte-Gattat
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,11 +32,18 @@ setup(
 
     install_requires=[
         'click',
-        'ghapi'
+        'ghapi',
+        'ipython'
         ],
 
     packages=[
         'fbcam',
         'fbcam.grainyhead'
-        ]
+        ],
+
+    entry_points={
+        'console_scripts': [
+            'grh = fbcam.grainyhead.main:grh'
+            ]
+        }
     )
