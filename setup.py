@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from setuptool import setup
+from setuptools import setup
 from fbcam.grainyhead import __version__
 
 setup(
