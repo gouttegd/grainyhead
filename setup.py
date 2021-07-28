@@ -32,6 +32,7 @@ setup(
 
     install_requires=[
         'click',
+        'click_shell',
         'ghapi',
         'ipython'
         ],
