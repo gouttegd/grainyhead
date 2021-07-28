@@ -4,3 +4,4 @@ dist
 .pydevproject
 .settings
 *.pyc
+*.egg-info
