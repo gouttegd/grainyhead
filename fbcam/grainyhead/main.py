@@ -20,11 +20,10 @@ import sys
 
 import click
 from click_shell import shell
-from ghapi.core import GhApi
-from ghapi.page import pages
 from IPython import embed
 
 from fbcam.grainyhead import __version__
+from fbcam.grainyhead.repository import Repository
 
 prog_name = "grh"
 prog_notice = f"""\
@@ -62,19 +61,19 @@ def grh(ctx, config, section):
     repo = cfg.get(section, 'repo')
     token = cfg.get(section, 'token', fallback=None)
 
-    api = GhApi(owner=owner, repo=repo, token=token)
-    ctx.obj = api
+    repository = Repository(owner, repo, token)
+    ctx.obj = repository
 
 
 @grh.command(name='issues')
 @click.option('--older-than', default=365,
               help="""Only list issues that have not been updated for the
                       specified number of days (default=365).""")
-@click.option('--team', default=None,
+@click.option('--team', default='__collaborators',
               help="""The name of a GitHub team, written as
                       <organisation>/<team>.""")
 @click.pass_obj
-def list_issues(api, older_than, team):
+def list_issues(repo, older_than, team):
     """List open issues.
     
     This commands list open issues that have not been updated for a
@@ -83,36 +82,22 @@ def list_issues(api, older_than, team):
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
 
-    _ = api.issues.list_for_repo(per_page=100)
-    issues = pages(api.issues.list_for_repo, api.last_page()).concat()
-    issues = [i for i in issues if not hasattr(i, 'pull_request') and _issue_is_older(i, cutoff)]
-
-    if team:
-        organisation, team_name = team.split('/')
-        members = api.teams.list_members_in_org(org=organisation, team_slug=team_name, per_page=100)
-        member_names = [m.login for m in members]
+    issues = [i for i in repo.get_issues() if _issue_is_older(i, cutoff)]
+    members = [m.login for m in repo.get_team(team)]
 
     print("| Issue | Author | Team? | Assignee(s) |")
     print("| ----- | ------ | ----- | ----------- |")
 
     for issue in issues:
         assignees = ', '.join(['@[{}]({})'.format(a.login, a.html_url) for a in issue.assignees])
-        if team:
-            if issue.user.login in member_names:
-                is_team = 'Yes'
-            else:
-                is_team = 'No'
-        elif issue.author_association in ['OWNER', 'MEMBER', 'CONTRIBUTOR']:
-            is_team = 'Yes'
-        else:
-            is_team = 'No'
+        is_team = 'Yes' if issue.user.login in members else 'No'
 
         print(f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |")
 
 
 @grh.command(name='ipython')
 @click.pass_obj
-def python_shell(api):
+def python_shell(repo):
     """Start an interactive Python shell.
     
     This commands starts a Python shell from where the GitHub API can be
