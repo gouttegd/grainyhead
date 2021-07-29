@@ -43,8 +43,8 @@ name, its author, a value indicating whether the author is a known
 contributor to the repository, and the names of any user(s) assigned to
 take care of the issue.
 
-Use the `--team` option to specify the name of the GitHub team (using
-the format `<organisation>/<team name>`). The command will then indicate
+Use the `--team` option to specify the name of the GitHub team from the
+organisation that owns the repository. The command will then indicate
 for each issue whether its author is a member of that team.
 
 

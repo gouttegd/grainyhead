@@ -69,8 +69,7 @@ def grh(ctx, config, section):
               help="""Only list issues that have not been updated for the
                       specified number of days (default=365).""")
 @click.option('--team', default='__collaborators',
-              help="""The name of a GitHub team, written as
-                      <organisation>/<team>.""")
+              help="""The name of a GitHub team.""")
 @click.pass_obj
 def list_issues(repo, older_than, team):
     """List open issues.
