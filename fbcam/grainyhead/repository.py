@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from datetime import datetime
+
 from ghapi.core import GhApi
 from ghapi.page import pages
+from fastcore.basics import AttrDict
 
 
 class Repository(object):
@@ -54,6 +57,9 @@ class Repository(object):
             self._issues = pages(self._api.issues.list_for_repo,
                                  last_page).concat()
 
+        for issue in self._issues:
+            issue.__class__ = Issue
+
     def _fetch_team(self, name):
         team = self._api.teams.list_members_in_org(org=self._owner,
                                                    team_slug=name,
@@ -72,3 +78,10 @@ class Repository(object):
             collabs = pages(self._api.repos.list_collaborators,
                             last_page).concat()
         self._teams['__collaborators'] = collabs
+
+
+class Issue(AttrDict):
+
+    def is_older_than(self, cutoff):
+        update = datetime.strptime(self.updated_at, '%Y-%m-%dT%H:%M:%S%z')
+        return update < cutoff

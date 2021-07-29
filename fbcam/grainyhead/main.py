@@ -82,7 +82,7 @@ def list_issues(repo, older_than, team):
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
 
-    issues = [i for i in repo.get_issues() if _issue_is_older(i, cutoff)]
+    issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
     members = [m.login for m in repo.get_team(team)]
 
     print("| Issue | Author | Team? | Assignee(s) |")
@@ -106,11 +106,6 @@ def python_shell(repo):
     """
 
     embed()
-
-
-def _issue_is_older(issue, cutoff):
-    update = datetime.strptime(issue.updated_at, '%Y-%m-%dT%H:%M:%S%z')
-    return update < cutoff
 
 
 if __name__ == '__main__':
