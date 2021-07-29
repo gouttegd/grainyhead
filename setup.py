@@ -33,9 +33,12 @@ setup(
     install_requires=[
         'click',
         'click_shell',
-        'ghapi',
-        'ipython'
+        'ghapi'
         ],
+
+    extras_require={
+        'IPython': ['ipython']
+        },
 
     packages=[
         'fbcam',

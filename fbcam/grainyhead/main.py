@@ -20,7 +20,6 @@ import sys
 
 import click
 from click_shell import shell
-from IPython import embed
 
 from fbcam.grainyhead import __version__
 from fbcam.grainyhead.repository import Repository
@@ -95,18 +94,23 @@ def list_issues(repo, older_than, team):
         print(f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |")
 
 
-@grh.command(name='ipython')
-@click.pass_obj
-def python_shell(repo):
-    """Start an interactive Python shell.
+try:
+    from IPython import embed
+
+    @grh.command(name='ipython')
+    @click.pass_obj
+    def python_shell(repo):
+        """Start an interactive Python shell.
     
-    This commands starts a Python shell from where the GitHub API can be
-    directly manipulated through the 'api' object. This is intended for
-    testing purposes.
-    """
+        This commands starts a Python shell from where the GitHub API
+        can be directly manipulated through the 'api' object. This is
+        intended for testing purposes.
+        """
 
-    embed()
+        embed()
 
+except ImportError:
+    pass
 
 if __name__ == '__main__':
     grh()
