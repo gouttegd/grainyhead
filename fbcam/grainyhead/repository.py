@@ -28,6 +28,7 @@ class Repository(object):
         self._api = GhApi(owner=owner, repo=name, token=token)
         self._issues = None
         self._teams = {}
+        self._labels = None
 
     def get_issues(self):
         if not self._issues:
@@ -49,6 +50,25 @@ class Repository(object):
                 self._fetch_team(name)
 
         return self._teams[name]
+
+    def get_labels(self):
+        if not self._labels:
+            self._fetch_labels()
+        return self._labels
+
+    def create_label(self, name, color, description):
+        if not name in self.get_labels():
+            self._api.issues.create_label(name, color, description)
+            self.get_labels().append(name)
+
+    def close_issue(self, number, label, comment):
+        numbers = [i.number for i in self.get_issues()]
+        if not number in numbers:
+            return
+
+        self._api.issues.add_labels(number, [label])
+        self._api.issues.create_comment(number, comment)
+        self._api.issues.update(number, state='closed')
 
     def _fetch_issues(self):
         self._issues = self._api.issues.list_for_repo(per_page=100)
@@ -78,6 +98,15 @@ class Repository(object):
             collabs = pages(self._api.repos.list_collaborators,
                             last_page).concat()
         self._teams['__collaborators'] = collabs
+
+    def _fetch_labels(self):
+        labels = self._api.issues.list_labels_for_repo(per_page=100)
+        last_page = self._api.last_page()
+        if last_page > 0:
+            labels = pages(self._api.issues.list_labels_for_repo,
+                           last_page).concat()
+
+        self._labels = [l.name for l in labels]
 
 
 class Issue(AttrDict):

@@ -16,6 +16,8 @@
 
 from configparser import ConfigParser
 from datetime import datetime, timedelta, timezone
+from time import sleep
+from random import randint
 import sys
 
 import click
@@ -91,6 +93,49 @@ def list_issues(repo, older_than, team):
         is_team = 'Yes' if issue.user.login in members else 'No'
 
         print(f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |")
+
+
+@grh.command(name='close')
+@click.option('--older-than', default=365,
+              help="""Close issues that have not been updated for the
+                      specified number of days (default=365).""")
+@click.option('--dry-run', '-d', is_flag=True, default=False,
+              help="""List issues that would be closed without actually
+                      closing them.""")
+@click.pass_obj
+def auto_close(repo, older_than, dry_run):
+    """Close old issues.
+    
+    This command automatically closes issues that have not been updated
+    for a given amount of time.
+    """
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
+
+    repo.create_label('autoclosed-unfixed', 'ff7000',
+                      'This issue has been closed automatically.')
+
+    issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
+    if dry_run:
+        print("The following issues are to be closed:")
+        for issue in issues:
+            last_update, _ = issue.updated_at.split('T')
+            print(f"{issue.number}: last update {last_update}: {issue.title}")
+    else:
+        for issue in issues:
+            repo.close_issue(issue.number, 'autoclosed-unfixed',
+                             """This issued has been closed because it is old.
+                                Please re-open if you still need this to be
+                                fixed, as we are now getting resources to deal
+                                with such issues.""")
+
+            # GitHub's documentation says that requests that trigger
+            # notifications (such as adding a comment to an issue)
+            # should be issued "at a reasonable pace", but does not
+            # elaborate on what a "reasonable pace" is.
+            # We try here to wait for anything between 2 and 10 seconds
+            # between requests.
+            sleep(randint(2, 10))
 
 
 try:
