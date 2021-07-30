@@ -116,13 +116,13 @@ def auto_close(repo, older_than, dry_run):
                       'This issue has been closed automatically.')
 
     issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
-    if dry_run:
-        print("The following issues are to be closed:")
-        for issue in issues:
-            last_update, _ = issue.updated_at.split('T')
-            print(f"{issue.number}: last update {last_update}: {issue.title}")
-    else:
-        for issue in issues:
+
+    click.echo_via_pager(_list_closable_issues(issues))
+    if dry_run or not click.confirm("Proceed?"):
+        return
+
+    with click.progressbar(issues, item_show_func=_show_closing_issue) as bar:
+        for issue in bar:
             repo.close_issue(issue.number, 'autoclosed-unfixed',
                              """This issued has been closed because it is old.
                                 Please re-open if you still need this to be
@@ -136,6 +136,20 @@ def auto_close(repo, older_than, dry_run):
             # We try here to wait for anything between 2 and 10 seconds
             # between requests.
             sleep(randint(2, 10))
+
+
+def _list_closable_issues(issues):
+    yield f"The following {len(issues)} issues are about to be closed:\n"
+    for issue in issues:
+        last_update, _ = issue.updated_at.split('T')
+        yield f"{issue.number}: last update {last_update}: {issue.title}\n"
+
+
+def _show_closing_issue(issue):
+    if issue:
+        return f"Closing issue #{issue.number}"
+    else:
+        return ""
 
 
 try:
