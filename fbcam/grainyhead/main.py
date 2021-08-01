@@ -52,6 +52,21 @@ class GrhContext(object):
 
         self._repo = None
 
+    def reset(self, section='default', config_file=None, options=None):
+        self._repo = None
+        self._name = section
+
+        if config_file:
+            self._config.clear()
+            self._config_file = config_file
+            self._has_config = len(self._config.read(config_file)) > 0
+        elif options:
+            self._config.clear()
+            self._config.add_section(section)
+            for key, value in options.items():
+                self._config.set(section, key, value)
+            self._has_config = True
+
     @property
     def repository(self):
         if not self._repo:
@@ -65,10 +80,18 @@ class GrhContext(object):
     def has_config(self):
         return self._has_config
 
+    @property
+    def config_file(self):
+        return self._config_file
+
+    @property
+    def config(self):
+        return self._config
+
 
 @shell(context_settings={'help_option_names': ['-h', '--help']},
        prompt="grh> ")
-@click.option('--config', '-c', type=click.Path(exists=True),
+@click.option('--config', '-c', type=click.Path(exists=False),
               default='{}/config'.format(click.get_app_dir('grainyhead')),
               help="Path to an alternative configuration file.")
 @click.option('--section', '-s', default='default',
@@ -79,10 +102,9 @@ def grh(ctx, config, section):
     """Command-line tool for GitHub."""
 
     context = GrhContext(config, section)
-    if not context.has_config:
-        die(f"No configuration available.")
-
     ctx.obj = context
+    if not context.has_config:
+        ctx.invoke(conf)
 
 
 @grh.command(name='issues')
@@ -171,6 +193,31 @@ def _show_closing_issue(issue):
         return f"Closing issue #{issue.number}"
     else:
         return ""
+
+
+@grh.command()
+@click.pass_obj
+def conf(grh):
+    """Edit the configuration.
+    
+    This command configures GrainyHead for use with a repository.
+    """
+
+    if grh.has_config:
+        click.termui.edit(filename=grh.config_file)
+        grh.reset(config_file=grh.config_file)
+    else:
+        opts = {}
+        opts['user'] = click.termui.prompt("Repository owner")
+        opts['repo'] = click.termui.prompt("Repository name")
+
+        click.echo("Visit https://github.com/settings/tokens to create "
+                   "a personal access token.")
+        opts['token'] = click.termui.prompt("Token")
+        grh.reset(options=opts)
+
+        with open(grh.config_file, 'w') as f:
+            grh.config.write(f)
 
 
 try:
