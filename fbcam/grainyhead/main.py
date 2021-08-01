@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from time import sleep
 from random import randint
 import sys
+import re
 
 import click
 from click_shell import shell
@@ -39,6 +40,14 @@ See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.
 def die(msg):
     print(f"{prog_name}: {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+def _parse_github_url(url):
+    m = re.match('(https?://github.com/)?([^/]+)/([^/.]+)', url)
+    if not m:
+        die(f"Invalid GitHub repository: {url}.")
+
+    return m.groups()[1:]
 
 
 class GrhContext(object):
@@ -70,8 +79,8 @@ class GrhContext(object):
     @property
     def repository(self):
         if not self._repo:
-            owner = self._config.get(self._name, 'user')
-            repo = self._config.get(self._name, 'repo')
+            repo_url = self._config.get(self._name, 'repository')
+            owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
             self._repo = Repository(owner, repo, token)
         return self._repo
@@ -208,8 +217,7 @@ def conf(grh):
         grh.reset(config_file=grh.config_file)
     else:
         opts = {}
-        opts['user'] = click.termui.prompt("Repository owner")
-        opts['repo'] = click.termui.prompt("Repository name")
+        opts['repository'] = click.termui.prompt("Repository name or URL")
 
         click.echo("Visit https://github.com/settings/tokens to create "
                    "a personal access token.")
