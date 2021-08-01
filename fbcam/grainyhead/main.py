@@ -41,6 +41,31 @@ def die(msg):
     sys.exit(1)
 
 
+class GrhContext(object):
+
+    def __init__(self, config_file, section='default'):
+        self._config_file = config_file
+        self._name = section
+
+        self._config = ConfigParser()
+        self._has_config = len(self._config.read(config_file)) > 0
+
+        self._repo = None
+
+    @property
+    def repository(self):
+        if not self._repo:
+            owner = self._config.get(self._name, 'user')
+            repo = self._config.get(self._name, 'repo')
+            token = self._config.get(self._name, 'token', fallback=None)
+            self._repo = Repository(owner, repo, token)
+        return self._repo
+
+    @property
+    def has_config(self):
+        return self._has_config
+
+
 @shell(context_settings={'help_option_names': ['-h', '--help']},
        prompt="grh> ")
 @click.option('--config', '-c', type=click.Path(exists=True),
@@ -53,17 +78,11 @@ def die(msg):
 def grh(ctx, config, section):
     """Command-line tool for GitHub."""
 
-    cfg = ConfigParser()
-    cfg.read(config)
+    context = GrhContext(config, section)
+    if not context.has_config:
+        die(f"No configuration available.")
 
-    if not cfg.has_section(section):
-        die(f"No section {section} in configuration.")
-    owner = cfg.get(section, 'user')
-    repo = cfg.get(section, 'repo')
-    token = cfg.get(section, 'token', fallback=None)
-
-    repository = Repository(owner, repo, token)
-    ctx.obj = repository
+    ctx.obj = context
 
 
 @grh.command(name='issues')
@@ -73,13 +92,14 @@ def grh(ctx, config, section):
 @click.option('--team', default='__collaborators',
               help="""The name of a GitHub team.""")
 @click.pass_obj
-def list_issues(repo, older_than, team):
+def list_issues(grh, older_than, team):
     """List open issues.
     
     This commands list open issues that have not been updated for a
     given amount of time.
     """
 
+    repo = grh.repository
     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
 
     issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
@@ -103,13 +123,14 @@ def list_issues(repo, older_than, team):
               help="""List issues that would be closed without actually
                       closing them.""")
 @click.pass_obj
-def auto_close(repo, older_than, dry_run):
+def auto_close(grh, older_than, dry_run):
     """Close old issues.
     
     This command automatically closes issues that have not been updated
     for a given amount of time.
     """
 
+    repo = grh.repository
     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
 
     repo.create_label('autoclosed-unfixed', 'ff7000',
