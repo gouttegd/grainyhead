@@ -61,16 +61,6 @@ class Repository(object):
             self._api.issues.create_label(name, color, description)
             self.get_labels().append(name)
 
-    def close_issue(self, number, label, comment):
-        numbers = [i.number for i in self.get_issues()]
-        if not number in numbers:
-            return
-
-        self._api.issues.add_labels(number, [label])
-        if comment:
-            self._api.issues.create_comment(number, comment)
-        self._api.issues.update(number, state='closed')
-
     def _fetch_issues(self):
         self._issues = self._api.issues.list_for_repo(per_page=100)
         last_page = self._api.last_page()
@@ -80,6 +70,7 @@ class Repository(object):
 
         for issue in self._issues:
             issue.__class__ = Issue
+            issue._api = self._api
 
     def _fetch_team(self, name):
         team = self._api.teams.list_members_in_org(org=self._owner,
@@ -115,3 +106,10 @@ class Issue(AttrDict):
     def is_older_than(self, cutoff):
         update = datetime.strptime(self.updated_at, '%Y-%m-%dT%H:%M:%S%z')
         return update < cutoff
+
+    def close(self, label=None, comment=None):
+        if label:
+            self._api.issues.add_labels(self.number, [label])
+        if comment:
+            self._api.issues.create_comment(self.number, comment)
+        self._api.issues.update(self.number, state='closed')

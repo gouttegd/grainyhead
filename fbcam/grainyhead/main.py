@@ -189,7 +189,7 @@ def auto_close(grh, comment, older_than, dry_run, limit):
 
     with click.progressbar(issues, item_show_func=_show_closing_issue) as bar:
         for issue in bar:
-            repo.close_issue(issue.number, 'autoclosed-unfixed', comment)
+            issue.close('autoclosed-unfixed', comment)
 
             # GitHub's documentation says that requests that trigger
             # notifications (such as adding a comment to an issue)
