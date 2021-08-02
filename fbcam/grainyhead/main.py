@@ -153,8 +153,10 @@ def list_issues(grh, older_than, team):
 @click.option('--dry-run', '-d', is_flag=True, default=False,
               help="""List issues that would be closed without actually
                       closing them.""")
+@click.option('--limit', '-l', default=-1, metavar='N',
+              help="""Only close the N oldest issues.""")
 @click.pass_obj
-def auto_close(grh, older_than, dry_run):
+def auto_close(grh, older_than, dry_run, limit):
     """Close old issues.
     
     This command automatically closes issues that have not been updated
@@ -168,6 +170,8 @@ def auto_close(grh, older_than, dry_run):
                       'This issue has been closed automatically.')
 
     issues = [i for i in reversed(repo.get_issues()) if i.is_older_than(cutoff)]
+    if limit != -1:
+        issues = issues[:limit]
 
     click.echo_via_pager(_list_closable_issues(issues))
     if dry_run or not click.confirm("Proceed?"):
