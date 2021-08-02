@@ -167,7 +167,7 @@ def auto_close(grh, older_than, dry_run):
     repo.create_label('autoclosed-unfixed', 'ff7000',
                       'This issue has been closed automatically.')
 
-    issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
+    issues = [i for i in reversed(repo.get_issues()) if i.is_older_than(cutoff)]
 
     click.echo_via_pager(_list_closable_issues(issues))
     if dry_run or not click.confirm("Proceed?"):
