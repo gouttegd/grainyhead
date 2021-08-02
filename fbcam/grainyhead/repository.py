@@ -67,7 +67,8 @@ class Repository(object):
             return
 
         self._api.issues.add_labels(number, [label])
-        self._api.issues.create_comment(number, comment)
+        if comment:
+            self._api.issues.create_comment(number, comment)
         self._api.issues.update(number, state='closed')
 
     def _fetch_issues(self):

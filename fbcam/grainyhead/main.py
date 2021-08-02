@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from configparser import ConfigParser
+from configparser import ConfigParser, _UNSET
 from datetime import datetime, timedelta, timezone
 from time import sleep
 from random import randint
@@ -75,6 +75,9 @@ class GrhContext(object):
             for key, value in options.items():
                 self._config.set(section, key, value)
             self._has_config = True
+
+    def get_option(self, key, fallback=_UNSET):
+        return self._config.get(self._name, key, fallback=fallback)
 
     @property
     def repository(self):
@@ -150,13 +153,15 @@ def list_issues(grh, older_than, team):
 @click.option('--older-than', default=365,
               help="""Close issues that have not been updated for the
                       specified number of days (default=365).""")
+@click.option('--comment', '-c', default=None,
+              help="""Text of the comment to add to the closed issues.""")
 @click.option('--dry-run', '-d', is_flag=True, default=False,
               help="""List issues that would be closed without actually
                       closing them.""")
 @click.option('--limit', '-l', default=-1, metavar='N',
               help="""Only close the N oldest issues.""")
 @click.pass_obj
-def auto_close(grh, older_than, dry_run, limit):
+def auto_close(grh, comment, older_than, dry_run, limit):
     """Close old issues.
     
     This command automatically closes issues that have not been updated
@@ -169,21 +174,22 @@ def auto_close(grh, older_than, dry_run, limit):
     repo.create_label('autoclosed-unfixed', 'ff7000',
                       'This issue has been closed automatically.')
 
+    if not comment:
+        comment = grh.get_option('close.comment', fallback=None)
+
     issues = [i for i in reversed(repo.get_issues()) if i.is_older_than(cutoff)]
     if limit != -1:
         issues = issues[:limit]
 
     click.echo_via_pager(_list_closable_issues(issues))
+    if comment:
+        click.echo(f"Closing with comment: {comment}")
     if dry_run or not click.confirm("Proceed?"):
         return
 
     with click.progressbar(issues, item_show_func=_show_closing_issue) as bar:
         for issue in bar:
-            repo.close_issue(issue.number, 'autoclosed-unfixed',
-                             """This issued has been closed because it is old.
-                                Please re-open if you still need this to be
-                                fixed, as we are now getting resources to deal
-                                with such issues.""")
+            repo.close_issue(issue.number, 'autoclosed-unfixed', comment)
 
             # GitHub's documentation says that requests that trigger
             # notifications (such as adding a comment to an issue)
