@@ -31,8 +31,7 @@ setup(
         ],
 
     install_requires=[
-        'click',
-        'click_shell',
+        'click_shell >= 2.1',
         'ghapi'
         ],
 

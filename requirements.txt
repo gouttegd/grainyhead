@@ -1,0 +1,2 @@
+click-shell >=2.1
+ghapi
