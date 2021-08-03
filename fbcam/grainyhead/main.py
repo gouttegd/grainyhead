@@ -26,6 +26,7 @@ from click_shell import shell
 
 from fbcam.grainyhead import __version__
 from fbcam.grainyhead.repository import Repository
+from fbcam.grainyhead.util import parse_duration
 
 prog_name = "grh"
 prog_notice = f"""\
@@ -120,9 +121,9 @@ def grh(ctx, config, section):
 
 
 @grh.command(name='issues')
-@click.option('--older-than', default=365,
+@click.option('--older-than', default='1y',
               help="""Only list issues that have not been updated for the
-                      specified number of days (default=365).""")
+                      specified duration (default=1y).""")
 @click.option('--team', default='__collaborators',
               help="""The name of a GitHub team.""")
 @click.pass_obj
@@ -134,7 +135,7 @@ def list_issues(grh, older_than, team):
     """
 
     repo = grh.repository
-    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
+    cutoff = datetime.now(timezone.utc) - parse_duration(older_than)
 
     issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
     members = [m.login for m in repo.get_team(team)]
@@ -150,9 +151,9 @@ def list_issues(grh, older_than, team):
 
 
 @grh.command(name='close')
-@click.option('--older-than', default=365,
+@click.option('--older-than', default='1y',
               help="""Close issues that have not been updated for the
-                      specified number of days (default=365).""")
+                      specified duration (default=1y).""")
 @click.option('--comment', '-c', default=None,
               help="""Text of the comment to add to the closed issues.""")
 @click.option('--dry-run', '-d', is_flag=True, default=False,
@@ -169,7 +170,7 @@ def auto_close(grh, comment, older_than, dry_run, limit):
     """
 
     repo = grh.repository
-    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than)
+    cutoff = datetime.now(timezone.utc) - parse_duration(older_than)
 
     repo.create_label('autoclosed-unfixed', 'ff7000',
                       'This issue has been closed automatically.')
