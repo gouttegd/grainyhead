@@ -244,7 +244,7 @@ try:
 
     @grh.command(name='ipython')
     @click.pass_obj
-    def python_shell(repo):
+    def python_shell(grh):
         """Start an interactive Python shell.
     
         This commands starts a Python shell from where the GitHub API
@@ -252,6 +252,8 @@ try:
         intended for testing purposes.
         """
 
+        api = grh.repository._api
+        repo = grh.repository
         embed()
 
 except ImportError:
