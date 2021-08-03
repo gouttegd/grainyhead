@@ -48,5 +48,13 @@ setup(
         'console_scripts': [
             'grh = fbcam.grainyhead.main:grh'
             ]
+        },
+
+    command_options={
+        'build_sphinx': {
+            'project': ('setup.py', 'GrainyHead'),
+            'version': ('setup.py', __version__),
+            'release': ('setup.py', __version__)
+            }
         }
     )
