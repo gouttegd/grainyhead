@@ -30,7 +30,7 @@ from fbcam.grainyhead.util import parse_duration
 
 prog_name = "grh"
 prog_notice = f"""\
-{prog_name} {__version__}
+{prog_name} (GrainyHead {__version__})
 Copyright © 2021 Damien Goutte-Gattat
 
 This program is released under the GNU General Public License.
