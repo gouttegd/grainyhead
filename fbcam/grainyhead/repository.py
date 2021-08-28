@@ -20,6 +20,8 @@ from ghapi.core import GhApi
 from ghapi.page import pages
 from fastcore.basics import AttrDict
 
+_GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+
 
 class Repository(object):
 
@@ -27,85 +29,197 @@ class Repository(object):
         self._owner = owner
         self._api = GhApi(owner=owner, repo=name, token=token)
         self._issues = None
+        self._comments = None
         self._teams = {}
         self._labels = None
+        self._events = None
+        self._commits = None
+        self._releases = None
 
-    def get_issues(self):
+    @property
+    def issues_pulls(self):
         if not self._issues:
-            self._fetch_issues()
+            self._issues = self._fetch(self._api.issues.list_for_repo,
+                                       apiargs={'state': 'all'},
+                                       wrapper=Issue)
+            Issue._api = self._api
 
-        return [i for i in self._issues if not hasattr(i, 'pull_request')]
+        return self._issues
 
-    def get_pull_requests(self):
-        if not self._issues:
-            self._fetch_issues()
+    @property
+    def issues(self):
+        return [i for i in self.issues_pulls if not hasattr(i, 'pull_request')
+                and i.closed_at is None]
 
-        return [i for i in self._issues if hasattr(i, 'pull_request')]
+    @property
+    def all_issues(self):
+        return [i for i in self.issues_pulls if not hasattr(i, 'pull_request')]
+
+    @property
+    def pull_requests(self):
+        return [i for i in self.issues_pulls if hasattr(i, 'pull_request')
+                and i.closed_at is None]
+
+    @property
+    def all_pull_requests(self):
+        return [i for i in self.issues_pulls if hasattr(i, 'pull_request')]
+
+    @property
+    def comments(self):
+        if not self._comments:
+            self._comments = self._fetch(self._api.issues.list_comments_for_repo,
+                                         wrapper=GithubObject)
+
+        return self._comments
+
+    @property
+    def events(self):
+        if not self._events:
+            self._events = self._fetch(self._api.issues.list_events_for_repo,
+                                       wrapper=GithubObject)
+
+        return self._events
+
+    @property
+    def commits(self):
+        if not self._commits:
+            self._commits = self._fetch(self._api.repos.list_commits,
+                                        wrapper=Commit)
+
+        return self._commits
+
+    @property
+    def releases(self):
+        if not self._releases:
+            self._releases = self._fetch(self._api.repos.list_releases,
+                                         wrapper=GithubObject)
+
+        return self._releases
+
+    @property
+    def labels(self):
+        if not self._labels:
+            labels = self._fetch(self._api.issues.list_labels_for_repo)
+            self._labels = [l.name for l in labels]
+
+        return self._labels
 
     def get_team(self, name='__collaborators'):
         if name not in self._teams:
             if name == '__collaborators':
-                self._fetch_collaborators()
+                team = self._fetch(self._api.repos.list_collaborators)
             else:
-                self._fetch_team(name)
+                team = self._fetch(self._api.teams.list_members_in_org,
+                                   apiargs={'org': self._owner,
+                                            'team_slug': name})
+            self._teams[name] = team
 
         return self._teams[name]
-
-    def get_labels(self):
-        if not self._labels:
-            self._fetch_labels()
-        return self._labels
 
     def create_label(self, name, color, description):
         if not name in self.get_labels():
             self._api.issues.create_label(name, color, description)
             self.get_labels().append(name)
 
-    def _fetch_issues(self):
-        self._issues = self._api.issues.list_for_repo(per_page=100)
+    def get_metrics(self, start, end, team='__collaborators'):
+        m = {}
+        members = [m.login for m in self.get_team(team)]
+
+        issues_opened = [i for i in self.all_issues
+                         if i.created(after=start, before=end)]
+        m['Issues opened'] = (len(issues_opened),
+                              len([i for i in issues_opened
+                                   if i.user.login in members]))
+
+        issues_closes = [e for e in self.events
+                         if e.event == 'closed'
+                         and e.created(after=start, before=end)
+                         and not hasattr(e.issue, 'pull_request')]
+        m['Issues closed'] = (len(issues_closes),
+                              len([e for e in issues_closes
+                                   if e.actor.login in members]))
+
+        pulls_opened = [p for p in self.all_pull_requests
+                        if p.created(after=start, before=end)]
+        m['Pull requests opened'] = (len(pulls_opened),
+                                     len([p for p in pulls_opened
+                                          if p.user.login in members]))
+
+        pulls_closes = [e for e in self.events
+                        if e.event == 'closed'
+                        and e.created(after=start, before=end)
+                        and hasattr(e.issue, 'pull_request')]
+        m['Pull requests closed'] = (len(pulls_closes),
+                                     len([e for e in pulls_closes
+                                          if e.actor.login in members]))
+
+        merges = [e for e in self.events if e.event == 'merged'
+                  and e.created(after=start, before=end)]
+        m['Pull requests merged'] = (len(merges),
+                                     len([e for e in merges
+                                          if e.actor.login in members]))
+
+        comments = [c for c in self.comments
+                    if c.created(after=start, before=end)]
+        m['Comments'] = (len(comments),
+                         len([c for c in comments
+                              if c.user.login in members]))
+
+        commits = [c for c in self.commits
+                   if c.created(after=start, before=end)]
+        m['Commits'] = (len(commits),
+                        len([c for c in commits
+                             if c.author and c.author.login in members]))
+
+        contributors = []
+        contributors.extend([i.user.login for i in issues_opened])
+        contributors.extend([p.user.login for p in pulls_opened])
+        contributors.extend([c.user.login for c in comments])
+        contributors.extend([e.actor.login for e in issues_closes])
+        contributors.extend([e.actor.login for e in pulls_closes])
+        contributors = set(contributors)
+        m['Contributors'] = (len(contributors),
+                             len([c for c in contributors if c in members]))
+
+        releases = [r for r in self.releases
+                    if r.created(after=start, before=end)]
+        m['Releases'] = (len(releases), None)
+
+        return m
+
+    def _fetch(self, apicall, apiargs={}, wrapper=None):
+        things = apicall(per_page=100, **apiargs)
         last_page = self._api.last_page()
         if last_page > 0:
-            self._issues = pages(self._api.issues.list_for_repo,
-                                 last_page).concat()
+            things = pages(apicall, last_page, **apiargs).concat()
 
-        for issue in self._issues:
-            issue.__class__ = Issue
-            issue._api = self._api
+        if wrapper:
+            for thing in things:
+                thing.__class__ = wrapper
 
-    def _fetch_team(self, name):
-        team = self._api.teams.list_members_in_org(org=self._owner,
-                                                   team_slug=name,
-                                                   per_page=100)
-        last_page = self._api.last_page()
-        if last_page > 0:
-            team = pages(self._api.teams.list_members_in_org,
-                         last_page).concat()
-
-        self._teams[name] = team
-
-    def _fetch_collaborators(self):
-        collabs = self._api.repos.list_collaborators(per_page=100)
-        last_page = self._api.last_page()
-        if last_page > 0:
-            collabs = pages(self._api.repos.list_collaborators,
-                            last_page).concat()
-        self._teams['__collaborators'] = collabs
-
-    def _fetch_labels(self):
-        labels = self._api.issues.list_labels_for_repo(per_page=100)
-        last_page = self._api.last_page()
-        if last_page > 0:
-            labels = pages(self._api.issues.list_labels_for_repo,
-                           last_page).concat()
-
-        self._labels = [l.name for l in labels]
+        return things
 
 
-class Issue(AttrDict):
+class GithubObject(AttrDict):
 
-    def is_older_than(self, cutoff):
-        update = datetime.strptime(self.updated_at, '%Y-%m-%dT%H:%M:%S%z')
-        return update < cutoff
+    def created(self, after=None, before=None):
+        dt = datetime.strptime(self.created_at, _GITHUB_DATE_FORMAT)
+        return (not after or dt > after) and (not before or dt < before)
+
+    def updated(self, after=None, before=None):
+        dt = datetime.strptime(self.updated_at, _GITHUB_DATE_FORMAT)
+        return (not after or dt > after) and (not before or dt < before)
+
+
+class Issue(GithubObject):
+
+    _api = None
+
+    def closed(self, after=None, before=None):
+        if not self.closed_at:
+            return False
+        dt = datetime.strptime(self.closed_at, _GITHUB_DATE_FORMAT)
+        return (not after or dt > after) and (not before or dt < before)
 
     def close(self, label=None, comment=None):
         if label:
@@ -113,3 +227,10 @@ class Issue(AttrDict):
         if comment:
             self._api.issues.create_comment(self.number, comment)
         self._api.issues.update(self.number, state='closed')
+
+
+class Commit(GithubObject):
+
+    def created(self, after=None, before=None):
+        dt = datetime.strptime(self.commit.author.date, _GITHUB_DATE_FORMAT)
+        return (not after or dt > after) and (not before or dt < before)

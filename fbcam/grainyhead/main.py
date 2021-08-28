@@ -215,6 +215,40 @@ def _show_closing_issue(issue):
 
 
 @grh.command()
+@click.option('--from', 'start', type=Date, default='6m',
+              help="""Set the beginning of the reporting period.
+                      Default to 6m (6 months ago).""")
+@click.option('--to', 'end', type=Date, default='now',
+              help="""Set the end of the reporting period.
+                      Default to now.""")
+@click.option('--team', default='__collaborators',
+              help="""The name of a GitHub team.""")
+@click.pass_obj
+def metrics(grh, start, end, team):
+    """Get repository metrics.
+    
+    This command prints some metrics from the repository.
+    """
+
+    metrics = grh.repository.get_metrics(start, end, team)
+
+    print(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}")
+    print()
+    print("| Event                | Total | Internal | External | Ext. (%) |")
+    print("| -------------------- | ----- | -------- | -------- | -------- |")
+
+    for name, values in metrics.items():
+        total, internal = values
+        print(f"| {name:20} | {total: 5} ", end='')
+        if internal is not None:
+            external = total - internal
+            percent = external / total * 100
+            print(f"| {internal: 8} | {external: 8} | {percent: 8.2f} |")
+        else:
+            print("|          |          |          |")
+
+
+@grh.command()
 @click.pass_obj
 def conf(grh):
     """Edit the configuration.
