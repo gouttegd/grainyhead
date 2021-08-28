@@ -15,7 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import ConfigParser, _UNSET
-from datetime import datetime, timedelta, timezone
 from time import sleep
 from random import randint
 import sys
@@ -26,7 +25,7 @@ from click_shell import shell
 
 from fbcam.grainyhead import __version__
 from fbcam.grainyhead.repository import Repository
-from fbcam.grainyhead.util import parse_duration
+from fbcam.grainyhead.util import Date
 
 prog_name = "grh"
 prog_notice = f"""\
@@ -121,13 +120,14 @@ def grh(ctx, config, section):
 
 
 @grh.command(name='issues')
-@click.option('--older-than', default='1y',
-              help="""Only list issues that have not been updated for the
-                      specified duration (default=1y).""")
+@click.option('--older-than', 'cutoff', default='1y', type=Date,
+              help="""Only list issues that have not been updated since the
+                      specified date or for the specified duration
+                      (default=1y, or one year ago).""")
 @click.option('--team', default='__collaborators',
               help="""The name of a GitHub team.""")
 @click.pass_obj
-def list_issues(grh, older_than, team):
+def list_issues(grh, cutoff, team):
     """List open issues.
     
     This commands list open issues that have not been updated for a
@@ -135,9 +135,8 @@ def list_issues(grh, older_than, team):
     """
 
     repo = grh.repository
-    cutoff = datetime.now(timezone.utc) - parse_duration(older_than)
 
-    issues = [i for i in repo.get_issues() if i.is_older_than(cutoff)]
+    issues = [i for i in repo.issues if i.updated(before=cutoff)]
     members = [m.login for m in repo.get_team(team)]
 
     print("| Issue | Author | Team? | Assignee(s) |")
@@ -151,9 +150,10 @@ def list_issues(grh, older_than, team):
 
 
 @grh.command(name='close')
-@click.option('--older-than', default='1y',
-              help="""Close issues that have not been updated for the
-                      specified duration (default=1y).""")
+@click.option('--older-than', 'cutoff', default='1y', type=Date,
+              help="""Close issues that have not been updated since the
+                      specified date or for the specified duration
+                      (default=1y, or one year ago).""")
 @click.option('--comment', '-c', default=None,
               help="""Text of the comment to add to the closed issues.""")
 @click.option('--dry-run', '-d', is_flag=True, default=False,
@@ -162,7 +162,7 @@ def list_issues(grh, older_than, team):
 @click.option('--limit', '-l', default=-1, metavar='N',
               help="""Only close the N oldest issues.""")
 @click.pass_obj
-def auto_close(grh, comment, older_than, dry_run, limit):
+def auto_close(grh, comment, cutoff, dry_run, limit):
     """Close old issues.
     
     This command automatically closes issues that have not been updated
@@ -170,7 +170,6 @@ def auto_close(grh, comment, older_than, dry_run, limit):
     """
 
     repo = grh.repository
-    cutoff = datetime.now(timezone.utc) - parse_duration(older_than)
 
     repo.create_label('autoclosed-unfixed', 'ff7000',
                       'This issue has been closed automatically.')
@@ -178,7 +177,7 @@ def auto_close(grh, comment, older_than, dry_run, limit):
     if not comment:
         comment = grh.get_option('close.comment', fallback=None)
 
-    issues = [i for i in reversed(repo.get_issues()) if i.is_older_than(cutoff)]
+    issues = [i for i in reversed(repo.issues) if i.updated(before=cutoff)]
     if limit != -1:
         issues = issues[:limit]
 

@@ -14,18 +14,60 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import re
 
+import click
+
 _durations = { 'd': 1, 'w': 7, 'm': 30, 'y': 365 }
+_date_formats = [
+    '%Y-%m-%d',
+    '%Y-%m'
+    ]
 
 
-def parse_duration(spec):
-    m = re.match('([0-9]+)([dwmy])?', spec)
-    if not m:
-        raise RuntimeError(f"Invalid duration: {spec}")
+class DateParamType(click.ParamType):
+    """A parameter type for Click representing a date.
 
-    n, f = m.groups()
-    if not f:
-        f = 'd'
-    return timedelta(days = int(n) * _durations[f])
+    This differs from the standard click.DateTime in that it also allows
+    to specify a date as a number of days, weeks, months, or years from
+    the current date. It also recognizes some special values.
+
+    Specifically, this parameter accepts:
+    - a plain date, written as YYYY-MM-DD or YYYY-MM;
+    - Xd (or simply X), for the date X day(s) ago;
+    - Xw, for the date X week(s) ago;
+    - Xm, for the date X month(s) ago;
+    - Xy, for the date Y year(s) ago;
+    - 'now', for the current date;
+    - 'origin', for the earliest possible date.
+    """
+
+    name = 'date'
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, datetime):
+            return value
+
+        if value.lower() == 'now':
+            return datetime.now(timezone.utc)
+        elif value.lower() == 'origin':
+            return datetime.min.replace(tzinfo=timezone.utc)
+        elif m := re.match('^([0-9]+)([dwmy])?$', value):
+            n, f = m.groups()
+            if not f:
+                f = 'd'
+            now = datetime.now(timezone.utc)
+            delta = timedelta(days=int(n) * _durations[f])
+            return now - delta
+        else:
+            for fmt in _date_formats:
+                try:
+                    dt = datetime.strptime(value, fmt)
+                    return dt.replace(tzinfo=timezone.utc)
+                except ValueError:
+                    pass
+            self.fail(f"Cannot convert '{value}' to a date", param, ctx)
+
+
+Date = DateParamType()
