@@ -117,9 +117,9 @@ class Repository(object):
         return self._teams[name]
 
     def create_label(self, name, color, description):
-        if not name in self.get_labels():
+        if not name in self.labels:
             self._api.issues.create_label(name, color, description)
-            self.get_labels().append(name)
+            self.labels.append(name)
 
     def get_metrics(self, start, end, team='__collaborators'):
         m = {}
