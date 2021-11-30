@@ -19,6 +19,7 @@ from datetime import datetime
 from ghapi.core import GhApi
 from ghapi.page import pages
 from fastcore.basics import AttrDict
+from fastcore.net import HTTP403ForbiddenError
 
 _GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 
@@ -106,12 +107,16 @@ class Repository(object):
 
     def get_team(self, name='__collaborators'):
         if name not in self._teams:
-            if name == '__collaborators':
-                team = self._fetch(self._api.repos.list_collaborators)
-            else:
-                team = self._fetch(self._api.teams.list_members_in_org,
-                                   apiargs={'org': self._owner,
-                                            'team_slug': name})
+            try:
+                if name == '__collaborators':
+                    team = self._fetch(self._api.repos.list_collaborators)
+                else:
+                    team = self._fetch(self._api.teams.list_members_in_org,
+                                       apiargs={'org': self._owner,
+                                                'team_slug': name})
+            except HTTP403ForbiddenError:
+                # Not enough rights to get this kind of information
+                team = []
             self._teams[name] = team
 
         return self._teams[name]
