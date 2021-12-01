@@ -15,11 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
+import logging
 
 from ghapi.core import GhApi
 from ghapi.page import pages
 from fastcore.basics import AttrDict
-from fastcore.net import HTTP403ForbiddenError
+from fastcore.net import HTTP4xxClientError
 
 _GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 
@@ -114,8 +115,9 @@ class Repository(object):
                     team = self._fetch(self._api.teams.list_members_in_org,
                                        apiargs={'org': self._owner,
                                                 'team_slug': name})
-            except HTTP403ForbiddenError:
-                # Not enough rights to get this kind of information
+            except HTTP4xxClientError:
+                logging.warn("Cannot get team data (possibly due to "
+                             "insufficient access rights)")
                 team = []
             self._teams[name] = team
 
