@@ -136,6 +136,9 @@ class Repository(object):
                               len([i for i in issues_opened
                                    if i.user.login in members]))
 
+        # Get only the events created after the cutoff start date
+        self._events = self._fetch_events(start)
+
         issues_closes = [e for e in self.events
                          if e.event == 'closed'
                          and e.created(after=start, before=end)
@@ -203,6 +206,26 @@ class Repository(object):
                 thing.__class__ = wrapper
 
         return things
+
+    def _fetch_events(self, after):
+        events = self._api.issues.list_events_for_repo(per_page=100)
+        last_page = self._api.last_page()
+        page = 0
+
+        loop = True
+        while loop and page < last_page:
+            evt_date = datetime.strptime(events[-1].created_at, _GITHUB_DATE_FORMAT)
+            if evt_date < after:
+                loop = False
+            else:
+                page += 1
+                events.extend(self._api.issues.list_events_for_repo(
+                    page=page, per_page=100))
+
+        for event in events:
+            event.__class__ = GithubObject
+
+        return events
 
 
 class GithubObject(AttrDict):
