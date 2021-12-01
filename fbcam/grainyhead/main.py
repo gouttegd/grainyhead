@@ -240,7 +240,7 @@ def metrics(grh, start, end, team):
     for name, values in metrics.items():
         total, internal = values
         print(f"| {name:20} | {total: 5} ", end='')
-        if internal is not None:
+        if total > 0 and internal is not None:
             external = total - internal
             percent = external / total * 100
             print(f"| {internal: 8} | {external: 8} | {percent: 8.2f} |")
