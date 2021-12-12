@@ -23,9 +23,12 @@ import os
 
 import click
 from click_shell import shell
+from ghapi.core import GhApi
 
 from fbcam.grainyhead import __version__
 from fbcam.grainyhead.repository import Repository
+from fbcam.grainyhead.providers import OnlineRepositoryProvider
+from fbcam.grainyhead.caching import FileRepositoryProvider
 from fbcam.grainyhead.util import Date
 
 prog_name = "grh"
@@ -61,6 +64,7 @@ class GrhContext(object):
         self._has_config = len(self._config.read(config_file)) > 0
 
         self._repo = None
+        self._cache = True
 
     def reset(self, section='default', config_file=None, options=None):
         self._repo = None
@@ -80,13 +84,20 @@ class GrhContext(object):
     def get_option(self, key, fallback=_UNSET):
         return self._config.get(self._name, key, fallback=fallback)
 
+    def disable_cache(self):
+        self._cache = False
+
     @property
     def repository(self):
         if not self._repo:
             repo_url = self._config.get(self._name, 'repository')
             owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
-            self._repo = Repository(owner, repo, token, self.cache_dir)
+            api = GhApi(owner=owner, repo=repo, token=token)
+            backend = OnlineRepositoryProvider(api)
+            if self._cache:
+                backend = FileRepositoryProvider(self.cache_dir, backend)
+            self._repo = Repository(api, backend)
         return self._repo
 
     @property
@@ -116,12 +127,16 @@ class GrhContext(object):
               help="Path to an alternative configuration file.")
 @click.option('--section', '-s', default='default',
               help="Name of the configuration file section to use.")
+@click.option('--no-cache', is_flag=True, default=False,
+              help="Disable the file cache.")
 @click.version_option(version=__version__, message=prog_notice)
 @click.pass_context
-def grh(ctx, config, section):
+def grh(ctx, config, section, no_cache):
     """Command-line tool for GitHub."""
 
     context = GrhContext(config, section)
+    if no_cache:
+        context.disable_cache()
     ctx.obj = context
     if not context.has_config:
         ctx.invoke(conf)

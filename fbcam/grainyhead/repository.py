@@ -14,21 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from ghapi.core import GhApi
-
 from fbcam.grainyhead.providers import (MemoryRepositoryProvider,
-                                        OnlineRepositoryProvider,
                                         RepositoryItemType)
-from fbcam.grainyhead.caching import FileRepositoryProvider
 
 
 class Repository(object):
 
-    def __init__(self, owner, name, token=None, directory=None):
-        self._api = GhApi(owner=owner, repo=name, token=token)
-        backend = OnlineRepositoryProvider(self._api)
-        if directory:
-            backend = FileRepositoryProvider(directory, backend)
+    def __init__(self, api, backend):
+        self._api = api
         self._provider = MemoryRepositoryProvider(backend)
         self._labels = None
         self._teams = None
