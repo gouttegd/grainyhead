@@ -19,6 +19,7 @@ from time import sleep
 from random import randint
 import sys
 import re
+import os
 
 import click
 from click_shell import shell
@@ -85,7 +86,7 @@ class GrhContext(object):
             repo_url = self._config.get(self._name, 'repository')
             owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
-            self._repo = Repository(owner, repo, token)
+            self._repo = Repository(owner, repo, token, self.cache_dir)
         return self._repo
 
     @property
@@ -99,6 +100,13 @@ class GrhContext(object):
     @property
     def config(self):
         return self._config
+
+    @property
+    def cache_dir(self):
+        xdg_data_dir = os.getenv('XDG_DATA_HOME',
+                                 os.path.join(os.getenv('HOME'),
+                                              'local', 'share'))
+        return os.path.join(xdg_data_dir, 'grainyhead', self._name)
 
 
 @shell(context_settings={'help_option_names': ['-h', '--help']},

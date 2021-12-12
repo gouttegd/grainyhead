@@ -22,7 +22,7 @@ from fastcore.basics import AttrDict
 from fastcore.net import HTTP4xxClientError
 from ghapi.page import gh2date, date2gh
 
-_GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 
 
 class RepositoryItemType(Enum):
@@ -46,11 +46,11 @@ class RepositoryItem(AttrDict):
 
     @property
     def creation_time(self):
-        return datetime.strptime(self.created_at, _GITHUB_DATE_FORMAT)
+        return datetime.strptime(self.created_at, GITHUB_DATE_FORMAT)
 
     @property
     def update_time(self):
-        return datetime.strptime(self.updated_at, _GITHUB_DATE_FORMAT)
+        return datetime.strptime(self.updated_at, GITHUB_DATE_FORMAT)
 
     def _filter_time(self, time, after=None, before=None):
         return (not after or time > after) and (not before or time < before)
@@ -76,7 +76,7 @@ class IssueItem(RepositoryItem):
     def close_time(self):
         if not self.closed_at:
             return None
-        return datetime.strptime(self.closed_at, _GITHUB_DATE_FORMAT)
+        return datetime.strptime(self.closed_at, GITHUB_DATE_FORMAT)
 
     def closed(self, after=None, before=None):
         """Indicates whether the issue was closed in a given time span."""
@@ -91,7 +91,7 @@ class CommitItem(RepositoryItem):
 
     @property
     def creation_time(self):
-        return gh2date(self.commit.author.date)
+        return datetime.strptime(self.commit.author.date, GITHUB_DATE_FORMAT)
 
 
 class RepositoryProvider(object):

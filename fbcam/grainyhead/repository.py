@@ -19,15 +19,17 @@ from ghapi.core import GhApi
 from fbcam.grainyhead.providers import (MemoryRepositoryProvider,
                                         OnlineRepositoryProvider,
                                         RepositoryItemType)
+from fbcam.grainyhead.caching import FileRepositoryProvider
 
 
 class Repository(object):
 
-    def __init__(self, owner, name, token=None):
-        self._owner = owner
+    def __init__(self, owner, name, token=None, directory=None):
         self._api = GhApi(owner=owner, repo=name, token=token)
-        self._provider = MemoryRepositoryProvider(
-            OnlineRepositoryProvider(self._api))
+        backend = OnlineRepositoryProvider(self._api)
+        if directory:
+            backend = FileRepositoryProvider(directory, backend)
+        self._provider = MemoryRepositoryProvider(backend)
         self._labels = None
         self._teams = None
 
