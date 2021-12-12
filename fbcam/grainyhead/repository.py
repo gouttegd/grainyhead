@@ -14,15 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
-import logging
-
 from ghapi.core import GhApi
-from ghapi.page import pages
-from fastcore.basics import AttrDict
-from fastcore.net import HTTP4xxClientError
 
-_GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+from fbcam.grainyhead.providers import (MemoryRepositoryProvider,
+                                        OnlineRepositoryProvider,
+                                        RepositoryItemType)
 
 
 class Repository(object):
@@ -30,103 +26,67 @@ class Repository(object):
     def __init__(self, owner, name, token=None):
         self._owner = owner
         self._api = GhApi(owner=owner, repo=name, token=token)
-        self._issues = None
-        self._comments = None
-        self._teams = {}
+        self._provider = MemoryRepositoryProvider(
+            OnlineRepositoryProvider(self._api))
         self._labels = None
-        self._events = None
-        self._commits = None
-        self._releases = None
-
-    @property
-    def issues_pulls(self):
-        if not self._issues:
-            self._issues = self._fetch(self._api.issues.list_for_repo,
-                                       apiargs={'state': 'all'},
-                                       wrapper=Issue)
-            Issue._api = self._api
-
-        return self._issues
+        self._teams = None
 
     @property
     def issues(self):
-        return [i for i in self.issues_pulls if not hasattr(i, 'pull_request')
-                and i.closed_at is None]
+        return [i for i in self._provider.issues if i.closed_at is None]
 
     @property
     def all_issues(self):
-        return [i for i in self.issues_pulls if not hasattr(i, 'pull_request')]
+        return self._provider.issues
 
     @property
     def pull_requests(self):
-        return [i for i in self.issues_pulls if hasattr(i, 'pull_request')
-                and i.closed_at is None]
+        return [i for i in self._provider.pull_requests if i.closed_at is None]
 
     @property
     def all_pull_requests(self):
-        return [i for i in self.issues_pulls if hasattr(i, 'pull_request')]
+        return self._provider.pull_requests
 
     @property
     def comments(self):
-        if not self._comments:
-            self._comments = self._fetch(self._api.issues.list_comments_for_repo,
-                                         wrapper=GithubObject)
-
-        return self._comments
+        return self._provider.comments
 
     @property
     def events(self):
-        if not self._events:
-            self._events = self._fetch(self._api.issues.list_events_for_repo,
-                                       wrapper=GithubObject)
-
-        return self._events
+        return self._provider.events
 
     @property
     def commits(self):
-        if not self._commits:
-            self._commits = self._fetch(self._api.repos.list_commits,
-                                        wrapper=Commit)
-
-        return self._commits
+        return self._provider.commits
 
     @property
     def releases(self):
-        if not self._releases:
-            self._releases = self._fetch(self._api.repos.list_releases,
-                                         wrapper=GithubObject)
-
-        return self._releases
+        return self._provider.releases
 
     @property
     def labels(self):
-        if not self._labels:
-            labels = self._fetch(self._api.issues.list_labels_for_repo)
-            self._labels = [l.name for l in labels]
-
+        if self._labels is None:
+            self._labels = [l.name for l in self._provider.labels]
         return self._labels
 
     def get_team(self, name='__collaborators'):
-        if name not in self._teams:
-            try:
-                if name == '__collaborators':
-                    team = self._fetch(self._api.repos.list_collaborators)
-                else:
-                    team = self._fetch(self._api.teams.list_members_in_org,
-                                       apiargs={'org': self._owner,
-                                                'team_slug': name})
-            except HTTP4xxClientError:
-                logging.warn("Cannot get team data (possibly due to "
-                             "insufficient access rights)")
-                team = []
-            self._teams[name] = team
-
-        return self._teams[name]
+        if self._teams is None:
+            self._teams = {}
+            for team in self._provider.teams:
+                self._teams[team.slug] = team
+        return self._teams[name].members
 
     def create_label(self, name, color, description):
         if not name in self.labels:
             self._api.issues.create_label(name, color, description)
-            self.labels.append(name)
+            self._labels.append(name)
+
+    def close_issue(self, issue, label=None, comment=None):
+        if label:
+            self._api.issues.add_labels(issue.number, [label])
+        if comment:
+            self._api.issues.create_comment(issue.number, comment)
+        self._api.issues.update(issue.number, state='closed')
 
     def get_metrics(self, start, end, team='__collaborators'):
         m = {}
@@ -139,7 +99,7 @@ class Repository(object):
                                    if i.user.login in members]))
 
         # Get only the events created after the cutoff start date
-        self._events = self._fetch_events(start)
+        self._provider.get_data(RepositoryItemType.EVENTS, start)
 
         issues_closes = [e for e in self.events
                          if e.event == 'closed'
@@ -196,71 +156,3 @@ class Repository(object):
         m['Releases'] = (len(releases), None)
 
         return m
-
-    def _fetch(self, apicall, apiargs={}, wrapper=None):
-        things = apicall(per_page=100, **apiargs)
-        last_page = self._api.last_page()
-        if last_page > 0:
-            things = pages(apicall, last_page, **apiargs).concat()
-
-        if wrapper:
-            for thing in things:
-                thing.__class__ = wrapper
-
-        return things
-
-    def _fetch_events(self, after):
-        events = self._api.issues.list_events_for_repo(per_page=100)
-        last_page = self._api.last_page()
-        page = 0
-
-        loop = True
-        while loop and page < last_page:
-            evt_date = datetime.strptime(events[-1].created_at, _GITHUB_DATE_FORMAT)
-            if evt_date < after:
-                loop = False
-            else:
-                page += 1
-                events.extend(self._api.issues.list_events_for_repo(
-                    page=page, per_page=100))
-
-        for event in events:
-            event.__class__ = GithubObject
-
-        return events
-
-
-class GithubObject(AttrDict):
-
-    def created(self, after=None, before=None):
-        dt = datetime.strptime(self.created_at, _GITHUB_DATE_FORMAT)
-        return (not after or dt > after) and (not before or dt < before)
-
-    def updated(self, after=None, before=None):
-        dt = datetime.strptime(self.updated_at, _GITHUB_DATE_FORMAT)
-        return (not after or dt > after) and (not before or dt < before)
-
-
-class Issue(GithubObject):
-
-    _api = None
-
-    def closed(self, after=None, before=None):
-        if not self.closed_at:
-            return False
-        dt = datetime.strptime(self.closed_at, _GITHUB_DATE_FORMAT)
-        return (not after or dt > after) and (not before or dt < before)
-
-    def close(self, label=None, comment=None):
-        if label:
-            self._api.issues.add_labels(self.number, [label])
-        if comment:
-            self._api.issues.create_comment(self.number, comment)
-        self._api.issues.update(self.number, state='closed')
-
-
-class Commit(GithubObject):
-
-    def created(self, after=None, before=None):
-        dt = datetime.strptime(self.commit.author.date, _GITHUB_DATE_FORMAT)
-        return (not after or dt > after) and (not before or dt < before)

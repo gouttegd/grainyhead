@@ -189,7 +189,7 @@ def auto_close(grh, comment, cutoff, dry_run, limit):
 
     with click.progressbar(issues, item_show_func=_show_closing_issue) as bar:
         for issue in bar:
-            issue.close('autoclosed-unfixed', comment)
+            repo.close_issue(issue, 'autoclosed-unfixed', comment)
 
             # GitHub's documentation says that requests that trigger
             # notifications (such as adding a comment to an issue)
@@ -270,6 +270,10 @@ def conf(grh):
 
         with open(grh.config_file, 'w') as f:
             grh.config.write(f)
+
+
+def refresh(grh):
+    pass
 
 
 try:
