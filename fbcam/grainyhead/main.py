@@ -116,7 +116,7 @@ class GrhContext(object):
     def cache_dir(self):
         xdg_data_dir = os.getenv('XDG_DATA_HOME',
                                  os.path.join(os.getenv('HOME'),
-                                              'local', 'share'))
+                                              '.local', 'share'))
         return os.path.join(xdg_data_dir, 'grainyhead', self._name)
 
 
