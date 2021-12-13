@@ -30,6 +30,7 @@ from fbcam.grainyhead.repository import Repository
 from fbcam.grainyhead.providers import OnlineRepositoryProvider
 from fbcam.grainyhead.caching import FileRepositoryProvider
 from fbcam.grainyhead.util import Date
+from fbcam.grainyhead.metrics import MetricsFormatter
 
 prog_name = "grh"
 prog_notice = f"""\
@@ -246,29 +247,20 @@ def _show_closing_issue(issue):
                       Default to now.""")
 @click.option('--team', default='__collaborators',
               help="""The name of a GitHub team.""")
+@click.option('--json', is_flag=True, default=False,
+              help="""Write output as JSON.""")
 @click.pass_obj
-def metrics(grh, start, end, team):
+def metrics(grh, start, end, team, json):
     """Get repository metrics.
     
     This command prints some metrics from the repository.
     """
 
     metrics = grh.repository.get_metrics(start, end, team)
+    fmt = 'json' if json else 'markdown'
+    formatter = MetricsFormatter.get_formatter(fmt)
 
-    print(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}")
-    print()
-    print("| Event                | Total | Internal | External | Ext. (%) |")
-    print("| -------------------- | ----- | -------- | -------- | -------- |")
-
-    for name, values in metrics.items():
-        total, internal = values
-        print(f"| {name:20} | {total: 5} ", end='')
-        if total > 0 and internal is not None:
-            external = total - internal
-            percent = external / total * 100
-            print(f"| {internal: 8} | {external: 8} | {percent: 8.2f} |")
-        else:
-            print("|          |          |          |")
+    formatter.write(metrics, sys.stdout)
 
 
 @grh.command()

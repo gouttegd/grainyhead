@@ -14,8 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from fbcam.grainyhead.providers import (MemoryRepositoryProvider,
-                                        RepositoryItemType)
+from datetime import datetime
+
+from fbcam.grainyhead.providers import MemoryRepositoryProvider
 
 
 class Repository(object):
@@ -84,57 +85,95 @@ class Repository(object):
         self._api.issues.update(issue.number, state='closed')
 
     def get_metrics(self, start, end, team='__collaborators'):
+        # FIXME: I *hate* this code. It is long, ugly, inefficient,
+        # even more boring to read that it is to write. Both
+        # building and using the metrics dictionary is a pain.
         m = {}
+        m['period'] = {}
+        m['period']['to'] = datetime.strftime(start, '%Y-%m-%d')
+        m['period']['from'] = datetime.strftime(end, '%Y-%m-%d')
+
         members = [m.login for m in self.get_team(team)]
+
+        contribs = {
+            'all': {
+                'issues': {},
+                'pull requests': {},
+                },
+            'internal': {
+                'issues': {},
+                'pull requests': {},
+                },
+            'external': {
+                'issues': {},
+                'pull requests': {},
+                },
+            'individuals': []
+            }
 
         issues_opened = [i for i in self.all_issues
                          if i.created(after=start, before=end)]
-        m['Issues opened'] = (len(issues_opened),
-                              len([i for i in issues_opened
-                                   if i.user.login in members]))
-
-        # Get only the events created after the cutoff start date
-        self._provider.get_data(RepositoryItemType.EVENTS, start)
+        contribs['all']['issues']['opened'] = len(issues_opened)
+        contribs['internal']['issues']['opened'] = len(
+            [i for i in issues_opened if i.user.login in members])
+        contribs['external']['issues']['opened'] = len(
+            [i for i in issues_opened if i.user.login not in members])
 
         issues_closes = [e for e in self.events
                          if e.event == 'closed'
                          and e.created(after=start, before=end)
                          and not hasattr(e.issue, 'pull_request')]
-        m['Issues closed'] = (len(issues_closes),
-                              len([e for e in issues_closes
-                                   if e.actor.login in members]))
+        contribs['all']['issues']['closed'] = len(issues_closes)
+        contribs['internal']['issues']['closed'] = len(
+            [e for e in issues_closes if e.actor.login in members])
+        contribs['external']['issues']['closed'] = len(
+            [e for e in issues_closes if e.actor.login not in members])
 
         pulls_opened = [p for p in self.all_pull_requests
                         if p.created(after=start, before=end)]
-        m['Pull requests opened'] = (len(pulls_opened),
-                                     len([p for p in pulls_opened
-                                          if p.user.login in members]))
+        contribs['all']['pull requests']['opened'] = len(pulls_opened)
+        contribs['internal']['pull requests']['opened'] = len(
+            [p for p in pulls_opened if p.user.login in members])
+        contribs['external']['pull requests']['opened'] = len(
+            [p for p in pulls_opened if p.user.login not in members])
 
         pulls_closes = [e for e in self.events
                         if e.event == 'closed'
                         and e.created(after=start, before=end)
                         and hasattr(e.issue, 'pull_request')]
-        m['Pull requests closed'] = (len(pulls_closes),
-                                     len([e for e in pulls_closes
-                                          if e.actor.login in members]))
+        contribs['all']['pull requests']['closed'] = len(pulls_closes)
+        contribs['internal']['pull requests']['closed'] = len(
+            [e for e in pulls_closes if e.actor.login in members])
+        contribs['external']['pull requests']['closed'] = len(
+            [e for e in pulls_closes if e.actor.login not in members])
 
         merges = [e for e in self.events if e.event == 'merged'
                   and e.created(after=start, before=end)]
-        m['Pull requests merged'] = (len(merges),
-                                     len([e for e in merges
-                                          if e.actor.login in members]))
+        contribs['all']['pull requests']['merged'] = len(merges)
+        contribs['internal']['pull requests']['merged'] = len(
+            [e for e in merges if e.actor.login in members])
+        contribs['external']['pull requests']['merged'] = len(
+            [e for e in merges if e.actor.login not in members])
 
         comments = [c for c in self.comments
                     if c.created(after=start, before=end)]
-        m['Comments'] = (len(comments),
-                         len([c for c in comments
-                              if c.user.login in members]))
+        contribs['all']['comments'] = len(comments)
+        contribs['internal']['comments'] = len(
+            [c for c in comments if c.user.login in members])
+        contribs['external']['comments'] = len(
+            [c for c in comments if c.user.login not in members])
 
         commits = [c for c in self.commits
                    if c.created(after=start, before=end)]
-        m['Commits'] = (len(commits),
-                        len([c for c in commits
-                             if c.author and c.author.login in members]))
+        contribs['all']['commits'] = len(commits)
+        contribs['internal']['commits'] = len(
+            [c for c in commits if c.author and c.author.login in members])
+        contribs['external']['commits'] = len(
+            [c for c in commits if c.author and c.author.login not in members])
+
+        releases = [r for r in self.releases
+                    if r.created(after=start, before=end)]
+        contribs['all']['releases'] = len(releases)
 
         contributors = []
         contributors.extend([i.user.login for i in issues_opened])
@@ -143,11 +182,40 @@ class Repository(object):
         contributors.extend([e.actor.login for e in issues_closes])
         contributors.extend([e.actor.login for e in pulls_closes])
         contributors = set(contributors)
-        m['Contributors'] = (len(contributors),
-                             len([c for c in contributors if c in members]))
+        m['contributors'] = {}
+        m['contributors']['total'] = len(contributors)
+        m['contributors']['internal'] = len([c for c in contributors
+                                             if c in members])
+        m['contributors']['external'] = len([c for c in contributors
+                                             if c not in members])
 
-        releases = [r for r in self.releases
-                    if r.created(after=start, before=end)]
-        m['Releases'] = (len(releases), None)
+        for contributor in contributors:
+            ind = {
+                'handle': contributor,
+                'issues': {},
+                'pull requests': {}
+                }
+
+            ind['issues']['opened'] = len(
+                [i for i in issues_opened if i.user.login == contributor])
+            ind['issues']['closed'] = len(
+                [e for e in issues_closes if e.actor.login == contributor])
+
+            ind['pull requests']['opened'] = len(
+                [p for p in pulls_opened if p.user.login == contributor])
+            ind['pull requests']['closed'] = len(
+                [e for e in pulls_closes if e.actor.login == contributor])
+            ind['pull requests']['merged'] = len(
+                [e for e in merges if e.actor.login == contributor])
+
+            ind['comments'] = len(
+                [c for c in comments if c.user.login == contributor])
+
+            ind['commits'] = len(
+                [c for c in commits if c.author and c.author.login == contributor])
+
+            contribs['individuals'].append(ind)
+
+        m['contributions'] = contribs
 
         return m
