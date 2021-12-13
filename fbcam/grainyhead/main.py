@@ -93,7 +93,7 @@ class GrhContext(object):
             repo_url = self._config.get(self._name, 'repository')
             owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
-            api = GhApi(owner=owner, repo=repo, token=token)
+            api = GhApi(owner=owner, repo=repo, org=owner, token=token)
             backend = OnlineRepositoryProvider(api)
             if self._cache:
                 backend = FileRepositoryProvider(self.cache_dir, backend)
