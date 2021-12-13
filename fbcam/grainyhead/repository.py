@@ -16,7 +16,7 @@
 
 from datetime import datetime
 
-from fbcam.grainyhead.providers import MemoryRepositoryProvider
+from .providers import MemoryRepositoryProvider
 
 
 class Repository(object):

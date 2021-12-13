@@ -25,12 +25,12 @@ import click
 from click_shell import shell
 from ghapi.core import GhApi
 
-from fbcam.grainyhead import __version__
-from fbcam.grainyhead.repository import Repository
-from fbcam.grainyhead.providers import OnlineRepositoryProvider
-from fbcam.grainyhead.caching import FileRepositoryProvider
-from fbcam.grainyhead.util import Date
-from fbcam.grainyhead.metrics import MetricsFormatter
+from . import __version__
+from .repository import Repository
+from .providers import OnlineRepositoryProvider
+from .caching import FileRepositoryProvider
+from .util import Date
+from .metrics import MetricsFormatter
 
 prog_name = "grh"
 prog_notice = f"""\
