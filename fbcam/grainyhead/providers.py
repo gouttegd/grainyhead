@@ -20,9 +20,13 @@ import logging
 
 from fastcore.basics import AttrDict
 from fastcore.net import HTTP4xxClientError
-from ghapi.page import gh2date, date2gh
+from ghapi.page import date2gh
 
 GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+
+
+def gh2date(dtstr):
+    return datetime.strptime(dtstr, GITHUB_DATE_FORMAT)
 
 
 class RepositoryItemType(Enum):
