@@ -213,10 +213,10 @@ class OnlineRepositoryProvider(RepositoryProvider):
                 loop = False
             else:
                 page += 1
-                things.extend(apicall, per_page=100, page=page, **apiargs)
+                things.extend(apicall(per_page=100, page=page, **apiargs))
 
         # Remove everything before the cutoff timestamp
-        return [i for i in things if gh2date(i) >= since]
+        return [i for i in things if gh2date(i.created_at) >= since]
 
     def _fetch_teams(self):
         teams = [AttrDict({'slug': '__collaborators'})]
