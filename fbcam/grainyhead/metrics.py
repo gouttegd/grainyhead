@@ -31,6 +31,7 @@ class MetricsReporter(object):
         self._repo = repository
         self._start = start
         self._end = end
+        self._date_filter = DateRangeFilter(start, end)
 
     def get_standard_report(self, team):
         """Generate a standard report set.
@@ -42,16 +43,17 @@ class MetricsReporter(object):
         - the metrics for the "external" contributors.
         """
 
-        date_filter = DateRangeFilter(self._start, self._end)
+        return self.get_custom_report(['all AS Total',
+                                       f'team:{team} AS Internal',
+                                       f'!team:{team} AS External'
+                                       ])
 
+    def get_custom_report(self, selectors):
         rset = _MetricsReportSet(self._start, self._end)
-        rset.contributions.append(self.get_single_report(CombinedFilter('Total', [date_filter, NullFilter()])))
 
-        members = [m.login for m in self._repo.get_team(team)]
-        team_filter = TeamFilter(team, members)
-
-        rset.contributions.append(self.get_single_report(CombinedFilter('Internal', [date_filter, team_filter])))
-        rset.contributions.append(self.get_single_report(CombinedFilter('External', [date_filter, ComplementFilter(team_filter)])))
+        for selector in selectors:
+            item_filter = self._get_filter_from_selector(selector)
+            rset.contributions.append(self.get_single_report(item_filter))
 
         return rset
 
@@ -102,6 +104,28 @@ class MetricsReporter(object):
             len(commits),
             len(releases),
             len(contributors)])
+
+    def _get_filter_from_selector(self, selector, level=0):
+        if ' AS ' in selector:
+            selector, name = selector.split(' AS ')
+        else:
+            name = selector
+
+        if selector[0] == '!':
+            f = ComplementFilter(self._get_filter_from_selector(selector[1:], level + 1))
+        elif selector == 'all':
+            f = NullFilter()
+        elif selector.startswith('team:'):
+            team_slug = selector[5:]
+            members = [m.login for m in self._repo.get_team(team_slug)]
+            f = TeamFilter(team_slug, members)
+        else:
+            f = NullFilter()
+
+        if level == 0:
+            return CombinedFilter(name, [self._date_filter, f])
+        else:
+            return f
 
 
 class MetricsFormatter(object):

@@ -249,15 +249,21 @@ def _show_closing_issue(issue):
               help="""The name of a GitHub team.""")
 @click.option('--json', is_flag=True, default=False,
               help="""Write output as JSON.""")
+@click.option('--selector', '-s', multiple=True, default=[],
+              help="""Select a subset of repository events.""")
 @click.pass_obj
-def metrics(grh, start, end, team, json):
+def metrics(grh, start, end, team, json, selector):
     """Get repository metrics.
     
     This command prints some metrics from the repository.
     """
 
     reporter = MetricsReporter(grh.repository, start, end)
-    metrics = reporter.get_standard_report(team)
+    if len(selector) == 0:
+        metrics = reporter.get_standard_report(team)
+    else:
+        metrics = reporter.get_custom_report(selector)
+
     fmt = 'json' if json else 'markdown'
     formatter = MetricsFormatter.get_formatter(fmt)
 
