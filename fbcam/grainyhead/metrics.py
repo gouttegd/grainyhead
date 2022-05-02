@@ -119,6 +119,9 @@ class MetricsReporter(object):
             team_slug = selector[5:]
             members = [m.login for m in self._repo.get_team(team_slug)]
             f = TeamFilter(team_slug, members)
+        elif selector.startswith('label:'):
+            label = selector[6:]
+            f = LabelFilter(label)
         else:
             f = NullFilter()
 
@@ -379,6 +382,21 @@ class TeamFilter(ItemFilter):
 
     def filterRelease(self, release):
         return release.author.login in self._members
+
+
+class LabelFilter(ItemFilter):
+
+    def __init__(self, label):
+        self._label = label
+
+    def __str__(self):
+        return f'label:{self._label}'
+
+    def filterIssue(self, issue):
+        return self._label in [l.name for l in issue.labels]
+
+    def filterEvent(self, event):
+        return self._label in [l.name for l in event.issue.labels]
 
 
 class ComplementFilter(ItemFilter):
