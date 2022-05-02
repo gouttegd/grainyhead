@@ -17,8 +17,95 @@
 import json
 
 
+class MetricsReporter(object):
+    """Generate metrics about events in a repository."""
+
+    def __init__(self, repository, start, end):
+        """Create a new instance.
+        
+        :param repository: the repository to work with
+        :param start: the beginning of the reporting period
+        :param end: the end of the reporting period
+        """
+
+        self._repo = repository
+        self._start = start
+        self._end = end
+
+    def get_standard_report(self, team):
+        """Generate a standard report set.
+        
+        The "standard" report set contains:
+        - the metrics for the entire repository;
+        - the metrics for the "internal" contributors (belonging to the
+          specified team;
+        - the metrics for the "external" contributors.
+        """
+
+        date_filter = DateRangeFilter(self._start, self._end)
+
+        rset = _MetricsReportSet(self._start, self._end)
+        rset.contributions.append(self.get_single_report(CombinedFilter('Total', [date_filter, NullFilter()])))
+
+        members = [m.login for m in self._repo.get_team(team)]
+        team_filter = TeamFilter(team, members)
+
+        rset.contributions.append(self.get_single_report(CombinedFilter('Internal', [date_filter, team_filter])))
+        rset.contributions.append(self.get_single_report(CombinedFilter('External', [date_filter, ComplementFilter(team_filter)])))
+
+        return rset
+
+    def get_single_report(self, item_filter):
+        """Get a single report object based on the given filter."""
+
+        issues_opened = [i for i in self._repo.all_issues
+                         if item_filter.filterIssue(i)]
+        issues_closes = [e for e in self._repo.events
+                         if e.event == 'closed'
+                         and not hasattr(e.issue, 'pull_request')
+                         and item_filter.filterEvent(e)]
+
+        pulls_opened = [p for p in self._repo.all_pull_requests
+                        if item_filter.filterIssue(p)]
+        pulls_closes = [e for e in self._repo.events
+                        if e.event == 'closed'
+                        and hasattr(e.issue, 'pull_request')
+                        and item_filter.filterEvent(e)]
+        pulls_merged = [e for e in self._repo.events
+                        if e.event == 'merged'
+                        and item_filter.filterEvent(e)]
+
+        comments = [c for c in self._repo.comments
+                    if item_filter.filterComment(c)]
+
+        commits = [c for c in self._repo.commits
+                   if item_filter.filterCommit(c)]
+
+        releases = [r for r in self._repo.releases
+                    if item_filter.filterRelease(r)]
+
+        contributors = []
+        contributors.extend([i.user.login for i in issues_opened])
+        contributors.extend([p.user.login for p in pulls_opened])
+        contributors.extend([c.user.login for c in comments])
+        contributors.extend([e.actor.login for e in issues_closes])
+        contributors.extend([e.actor.login for e in pulls_closes])
+        contributors = set(contributors)
+
+        return _Report(str(item_filter), item_filter.name, [
+            len(issues_opened),
+            len(issues_closes),
+            len(pulls_opened),
+            len(pulls_closes),
+            len(pulls_merged),
+            len(comments),
+            len(commits),
+            len(releases),
+            len(contributors)])
+
+
 class MetricsFormatter(object):
-    """Writes a report from a metrics dictionary."""
+    """Write a MetricsReportSet object."""
 
     def write(self, metrics, output):
         pass
@@ -35,78 +122,291 @@ class MetricsFormatter(object):
 class JsonMetricsFormatter(MetricsFormatter):
 
     def write(self, metrics, output):
-        json.dump(metrics, output, indent=2)
+        d = {
+            'period': {
+                'to': metrics.end_date.strftime('%Y-%m-%d'),
+                'from': metrics.start_date.strftime('%Y-%m-%d')
+                },
+            'contributions': []
+            }
+
+        for report in metrics.contributions:
+            c = {
+                'selector': report.selector,
+                'results': {
+                    'contributors': report.contributors,
+                    'issues': {
+                        'opened': report.issues_opened,
+                        'closed': report.issues_closed
+                        },
+                    'pull_requests': {
+                        'opened': report.pull_requests_opened,
+                        'closed': report.pull_requests_closed,
+                        'merged': report.pull_requests_merged
+                        },
+                    'comments': report.comments,
+                    'commits': report.commits,
+                    'releases': report.releases
+                    }
+                }
+            d['contributions'].append(c)
+
+        json.dump(d, output, indent=2)
 
 
 class MarkdownMetricsFormatter(MetricsFormatter):
 
-    def write(self, metrics, output):
-        # FIXME: I hate this code as much as I hate the
-        # code from repository.get_metrics...
-        start = metrics['period']['from']
-        end = metrics['period']['to']
+    def write(self, reportset, output):
+        start = reportset.start_date
+        end = reportset.end_date
 
-        output.write(f"From {start} to {end}\n")
+        output.write(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}\n")
         output.write("\n")
-        output.write("| Event                | Total | Internal | External | Ext. (%) |\n")
-        output.write("| -------------------- | ----- | -------- | -------- | -------- |\n")
 
-        contribs = metrics['contributions']
+        output.write(f"| Event                | {reportset.contributions[0].name:8} |")
+        for report in reportset.contributions[1:]:
+            output.write(f" {report.name:8.8} | {report.name:4.4} (%) |")
+        output.write("\n")
+        output.write("| -------------------- | -------- |")
+        for report in reportset.contributions[1:]:
+            output.write(" -------- | -------- |")
+        output.write("\n")
 
-        self._write_item("Issues opened",
-                         contribs['all']['issues']['opened'],
-                         contribs['internal']['issues']['opened'],
-                         contribs['external']['issues']['opened'],
-                         output)
-        self._write_item("Issues closed",
-                         contribs['all']['issues']['closed'],
-                         contribs['internal']['issues']['closed'],
-                         contribs['external']['issues']['closed'],
-                         output)
+        items = [
+            "Contributors",
+            "Issues opened",
+            "Issues closed",
+            "Pull requests opened",
+            "Pull requests closed",
+            "Pull requests merged",
+            "Comments",
+            "Commits",
+            "Releases"
+            ]
 
-        self._write_item("Pull requests opened",
-                         contribs['all']['pull requests']['opened'],
-                         contribs['internal']['pull requests']['opened'],
-                         contribs['external']['pull requests']['opened'],
-                         output)
-        self._write_item("Pull requests closed",
-                         contribs['all']['pull requests']['closed'],
-                         contribs['internal']['pull requests']['closed'],
-                         contribs['external']['pull requests']['closed'],
-                         output)
-        self._write_item("Pull requests merged",
-                         contribs['all']['pull requests']['merged'],
-                         contribs['internal']['pull requests']['merged'],
-                         contribs['external']['pull requests']['merged'],
-                         output)
+        for item in items:
+            self._write_line(item, reportset.contributions, output)
 
-        self._write_item("Comments",
-                         contribs['all']['comments'],
-                         contribs['internal']['comments'],
-                         contribs['external']['comments'],
-                         output)
+    def _write_line(self, label, reports, output):
+        property_name = label.lower().replace(' ', '_')
+        total = getattr(reports[0], property_name)
 
-        self._write_item("Commits",
-                         contribs['all']['commits'],
-                         contribs['internal']['commits'],
-                         contribs['external']['commits'],
-                         output)
+        output.write(f"| {label:20} | {total: 8} |")
 
-        self._write_item("Contributors",
-                         metrics['contributors']['total'],
-                         metrics['contributors']['internal'],
-                         metrics['contributors']['external'],
-                         output)
+        for report in reports[1:]:
+            value = getattr(report, property_name)
+            percent = value / total * 100
+            output.write(f" {value:8} | {percent: 8.2f} |")
+        output.write("\n")
 
-        self._write_item("Releases",
-                         contribs['all']['releases'],
-                         None, None, output)
 
-    def _write_item(self, label, total, internal, external, output):
-        output.write(f"| {label:20} | {total: 5} ")
-        if total > 0 and internal is not None:
-            percent = external / total * 100
-            output.write(f"| {internal: 8} | {external: 8} | {percent: 8.2f} |\n")
+class _MetricsReportSet(object):
+    """This object holds some metrics about events in a repository."""
+
+    def __init__(self, start, end):
+        """Create a new instance for the specified reporting period."""
+
+        self._start = start
+        self._end = end
+        self._reports = []
+
+    @property
+    def start_date(self):
+        """The beginning of the reporting period."""
+
+        return self._start
+
+    @property
+    def end_date(self):
+        """The end of the reporting period."""
+
+        return self._end
+
+    @property
+    def contributions(self):
+        """The individual contribution reports."""
+
+        return self._reports
+
+
+class _Report(object):
+    """This object holds metrics computed from a given selector."""
+
+    def __init__(self, selector, name, values):
+        self._selector = selector
+        self._name = name
+        self._values = values
+
+    @property
+    def selector(self):
+        return self._selector
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def contributors(self):
+        return self._values[8]
+
+    @property
+    def issues_opened(self):
+        return self._values[0]
+
+    @property
+    def issues_closed(self):
+        return self._values[1]
+
+    @property
+    def pull_requests_opened(self):
+        return self._values[2]
+
+    @property
+    def pull_requests_closed(self):
+        return self._values[3]
+
+    @property
+    def pull_requests_merged(self):
+        return self._values[4]
+
+    @property
+    def comments(self):
+        return self._values[5]
+
+    @property
+    def commits(self):
+        return self._values[6]
+
+    @property
+    def releases(self):
+        return self._values[7]
+
+
+class ItemFilter(object):
+
+    def filterIssue(self, issue):
+        return self._filterItem(issue)
+
+    def filterEvent(self, event):
+        return self._filterItem(event)
+
+    def filterComment(self, comment):
+        return self._filterItem(comment)
+
+    def filterCommit(self, commit):
+        return self._filterItem(commit)
+
+    def filterRelease(self, release):
+        return self._filterItem(release)
+
+    def _filterItem(self, _):
+        return False
+
+    @property
+    def name(self):
+        return str(self)
+
+
+class NullFilter(ItemFilter):
+
+    def _filterItem(self, _):
+        return True
+
+    def __str__(self):
+        return 'all'
+
+
+class DateRangeFilter(ItemFilter):
+
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+
+    def __str__(self):
+        return f'date:{self._start:%Y-%m-%d}..{self._end:%Y-%m-%d}'
+
+    def _filterItem(self, item):
+        return item.created(after=self._start, before=self._end)
+
+
+class TeamFilter(ItemFilter):
+
+    def __init__(self, team_name, members):
+        self._members = members
+        self._slug = team_name
+
+    def __str__(self):
+        return f'team:{self._slug}'
+
+    def filterIssue(self, issue):
+        return issue.user.login in self._members
+
+    def filterEvent(self, event):
+        return event.actor.login in self._members
+
+    def filterComment(self, comment):
+        return comment.user.login in self._members
+
+    def filterCommit(self, commit):
+        if commit.author is not None:
+            return commit.author.login in self._members
         else:
-            output.write("|          |          |          |\n")
+            return False
+
+    def filterRelease(self, release):
+        return release.author.login in self._members
+
+
+class ComplementFilter(ItemFilter):
+
+    def __init__(self, inner_filter):
+        self._filter = inner_filter
+
+    def __str__(self):
+        return f'!{str(self._filter)}'
+
+    def filterIssue(self, issue):
+        return not self._filter.filterIssue(issue)
+
+    def filterEvent(self, event):
+        return not self._filter.filterEvent(event)
+
+    def filterComment(self, comment):
+        return not self._filter.filterComment(comment)
+
+    def filterCommit(self, commit):
+        return not self._filter.filterCommit(commit)
+
+    def filterRelease(self, release):
+        return not self._filter.filterRelease(release)
+
+
+class CombinedFilter(ItemFilter):
+
+    def __init__(self, name, filters):
+        self._name = name
+        self._filters = filters
+
+    def __str__(self):
+        components = [str(f) for f in self._filters if not str(f).startswith('date:')]
+        return ' & '.join(components)
+
+    @property
+    def name(self):
+        return self._name
+
+    def filterIssue(self, issue):
+        return not False in [f.filterIssue(issue) for f in self._filters]
+
+    def filterEvent(self, event):
+        return not False in [f.filterEvent(event) for f in self._filters]
+
+    def filterComment(self, comment):
+        return not False in [f.filterComment(comment) for f in self._filters]
+
+    def filterCommit(self, commit):
+        return not False in [f.filterCommit(commit) for f in self._filters]
+
+    def filterRelease(self, release):
+        return not False in [f.filterRelease(release) for f in self._filters]
 

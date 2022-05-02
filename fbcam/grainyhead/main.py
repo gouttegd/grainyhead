@@ -30,7 +30,7 @@ from .repository import Repository
 from .providers import OnlineRepositoryProvider
 from .caching import FileRepositoryProvider
 from .util import Date
-from .metrics import MetricsFormatter
+from .metrics import MetricsFormatter, MetricsReporter
 
 prog_name = "grh"
 prog_notice = f"""\
@@ -256,7 +256,8 @@ def metrics(grh, start, end, team, json):
     This command prints some metrics from the repository.
     """
 
-    metrics = grh.repository.get_metrics(start, end, team)
+    reporter = MetricsReporter(grh.repository, start, end)
+    metrics = reporter.get_standard_report(team)
     fmt = 'json' if json else 'markdown'
     formatter = MetricsFormatter.get_formatter(fmt)
 
@@ -306,6 +307,7 @@ try:
 
         api = grh.repository._api
         repo = grh.repository
+        generator = ReportGenerator()
         embed()
 
 except ImportError:
