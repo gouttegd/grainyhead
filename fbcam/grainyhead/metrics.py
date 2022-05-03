@@ -153,6 +153,13 @@ class MetricsFormatter(object):
 class JsonMetricsFormatter(MetricsFormatter):
 
     def write(self, metrics, output):
+        if isinstance(metrics, list):
+            d = [self._get_dict_for_period(m) for m in metrics]
+        else:
+            d = self._get_dict_for_period(metrics)
+        json.dump(d, output, indent=2)
+
+    def _get_dict_for_period(self, metrics):
         d = {
             'period': {
                 'to': metrics.end_date.strftime('%Y-%m-%d'),
@@ -182,12 +189,19 @@ class JsonMetricsFormatter(MetricsFormatter):
                 }
             d['contributions'].append(c)
 
-        json.dump(d, output, indent=2)
+        return d
 
 
 class MarkdownMetricsFormatter(MetricsFormatter):
 
     def write(self, reportset, output):
+        if isinstance(reportset, list):
+            for r in reportset:
+                self._write_reportset(r, output)
+        else:
+            self._write_reportset(reportset, output)
+
+    def _write_reportset(self, reportset, output):
         start = reportset.start_date
         end = reportset.end_date
 
@@ -245,6 +259,13 @@ class CsvMetricsFormatter(MetricsFormatter):
         output.write(self._sep.join(headers))
         output.write('\n')
 
+        if isinstance(reportset, list):
+            for r in reportset:
+                self._write_reportset(r, output)
+        else:
+            self._write_reportset(reportset, output)
+
+    def _write_reportset(self, reportset, output):
         for report in reportset.contributions:
             values = [reportset.end_date.strftime('%Y-%m-%d'),
                       report.selector, report.name,
