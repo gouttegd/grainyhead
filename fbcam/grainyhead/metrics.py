@@ -15,41 +15,42 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import json
+from datetime import timedelta
 
 
 class MetricsReporter(object):
     """Generate metrics about events in a repository."""
 
-    def __init__(self, repository, start, end):
+    def __init__(self, repository):
         """Create a new instance.
         
         :param repository: the repository to work with
-        :param start: the beginning of the reporting period
-        :param end: the end of the reporting period
         """
 
         self._repo = repository
-        self._start = start
-        self._end = end
+
+    def get_report(self, selectors, start, end, period=None):
+        if period is None:
+            return self._get_report_for_period(selectors, start, end)
+        else:
+            done = False
+            reports = []
+
+            while not done:
+                period_end = start + period - timedelta(days=1)
+                reports.append(self._get_report_for_period(selectors, start,
+                                                           period_end))
+
+                if period_end > end:
+                    done = True
+                else:
+                    start = start + period
+
+            return reports
+
+    def _get_report_for_period(self, selectors, start, end):
+        rset = _MetricsReportSet(start, end)
         self._date_filter = DateRangeFilter(start, end)
-
-    def get_standard_report(self, team):
-        """Generate a standard report set.
-        
-        The "standard" report set contains:
-        - the metrics for the entire repository;
-        - the metrics for the "internal" contributors (belonging to the
-          specified team;
-        - the metrics for the "external" contributors.
-        """
-
-        return self.get_custom_report(['all AS Total',
-                                       f'team:{team} AS Internal',
-                                       f'!team:{team} AS External'
-                                       ])
-
-    def get_custom_report(self, selectors):
-        rset = _MetricsReportSet(self._start, self._end)
 
         for selector in selectors:
             item_filter = self._get_filter_from_selector(selector)

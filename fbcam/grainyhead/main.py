@@ -24,6 +24,7 @@ import os
 import click
 from click_shell import shell
 from ghapi.core import GhApi
+from dateutil.relativedelta import relativedelta
 
 from . import __version__
 from .repository import Repository
@@ -252,21 +253,32 @@ def _show_closing_issue(issue):
 @click.option('--format', '-f', 'fmt', default='markdown',
               type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
               help="""Write output in the specified format.""")
+@click.option('--period', '-p', default=None,
+              type=click.Choice(['weekly', 'monthly', 'quarterly', 'yearly']))
 @click.pass_obj
-def metrics(grh, start, end, team, selector, fmt):
+def metrics(grh, start, end, team, selector, fmt, period):
     """Get repository metrics.
     
     This command prints some metrics from the repository.
     """
 
-    reporter = MetricsReporter(grh.repository, start, end)
+    reporter = MetricsReporter(grh.repository)
     if len(selector) == 0:
-        metrics = reporter.get_standard_report(team)
-    else:
-        metrics = reporter.get_custom_report(selector)
+        selector = ['all', f'team:{team}', f'!team:{team}']
+
+    if period is not None:
+        if period == 'weekly':
+            period = relativedelta(weeks=1)
+        elif period == 'monthly':
+            period = relativedelta(months=1)
+        elif period == 'quarterly':
+            period = relativedelta(months=3)
+        elif period == 'yearly':
+            period = relativedelta(years=1)
+
+    metrics = reporter.get_report(selector, start, end, period)
 
     formatter = MetricsFormatter.get_formatter(fmt)
-
     formatter.write(metrics, sys.stdout)
 
 
