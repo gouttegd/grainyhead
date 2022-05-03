@@ -264,7 +264,9 @@ def metrics(grh, start, end, team, selector, fmt, period):
 
     reporter = MetricsReporter(grh.repository)
     if len(selector) == 0:
-        selector = ['all', f'team:{team}', f'!team:{team}']
+        selector = ['all AS Total',
+                    f'team:{team} AS Internal',
+                    f'!team:{team} AS External']
 
     if period is not None:
         if period == 'weekly':
