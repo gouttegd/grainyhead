@@ -247,12 +247,13 @@ def _show_closing_issue(issue):
                       Default to now.""")
 @click.option('--team', default='__collaborators',
               help="""The name of a GitHub team.""")
-@click.option('--json', is_flag=True, default=False,
-              help="""Write output as JSON.""")
 @click.option('--selector', '-s', multiple=True, default=[],
               help="""Select a subset of repository events.""")
+@click.option('--format', '-f', 'fmt', default='markdown',
+              type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
+              help="""Write output in the specified format.""")
 @click.pass_obj
-def metrics(grh, start, end, team, json, selector):
+def metrics(grh, start, end, team, selector, fmt):
     """Get repository metrics.
     
     This command prints some metrics from the repository.
@@ -264,7 +265,6 @@ def metrics(grh, start, end, team, json, selector):
     else:
         metrics = reporter.get_custom_report(selector)
 
-    fmt = 'json' if json else 'markdown'
     formatter = MetricsFormatter.get_formatter(fmt)
 
     formatter.write(metrics, sys.stdout)

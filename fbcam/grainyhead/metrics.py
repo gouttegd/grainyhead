@@ -141,6 +141,10 @@ class MetricsFormatter(object):
     def get_formatter(fmt):
         if fmt.lower() == 'markdown':
             return MarkdownMetricsFormatter()
+        elif fmt.lower() == 'csv':
+            return CsvMetricsFormatter()
+        elif fmt.lower() == 'tsv':
+            return CsvMetricsFormatter(sep='\t')
         else:
             # We default to JSON
             return JsonMetricsFormatter()
@@ -225,6 +229,31 @@ class MarkdownMetricsFormatter(MetricsFormatter):
             percent = value / total * 100
             output.write(f" {value:8} | {percent: 8.2f} |")
         output.write("\n")
+
+
+class CsvMetricsFormatter(MetricsFormatter):
+
+    def __init__(self, sep=','):
+        self._sep = sep
+
+    def write(self, reportset, output):
+        headers = ['Date', 'Selector', 'Selector name',
+                   'Issues opened', 'Issues closed',
+                   'Pull requests opened', 'Pull requests closed',
+                   'Pull requests merged', 'Comments', 'Commits',
+                   'Releases', 'Contributors']
+        output.write(self._sep.join(headers))
+        output.write('\n')
+
+        for report in reportset.contributions:
+            values = [reportset.end_date.strftime('%Y-%m-%d'),
+                      report.selector, report.name,
+                      report.issues_opened, report.issues_closed,
+                      report.pull_requests_opened, report.pull_requests_closed,
+                      report.pull_requests_merged, report.comments,
+                      report.commits, report.releases, report.contributors]
+            output.write(self._sep.join([str(v) for v in values]))
+            output.write('\n')
 
 
 class _MetricsReportSet(object):
