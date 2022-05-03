@@ -232,6 +232,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
         for item in items:
             self._write_line(item, reportset.contributions, output)
+        output.write('\n')
 
     def _write_line(self, label, reports, output):
         property_name = label.lower().replace(' ', '_')
