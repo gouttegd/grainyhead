@@ -15,11 +15,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime, timedelta, timezone
+from dateutil.relativedelta import relativedelta
 import re
 
 import click
 
 _durations = { 'd': 1, 'w': 7, 'm': 30, 'y': 365 }
+_periods = { 'd': 'days', 'w': 'weeks', 'm': 'months', 'y': 'years'}
 _date_formats = [
     '%Y-%m-%d',
     '%Y-%m'
@@ -70,4 +72,44 @@ class DateParamType(click.ParamType):
             self.fail(f"Cannot convert '{value}' to a date", param, ctx)
 
 
+class TimeIntervalParamType(click.ParamType):
+    """A parameter type for Click representing a time interval.
+    
+    This parameter accepts:
+    - Xd (or simply X), for an intervak of X day(s);
+    - Xw, for an interval of X week(s);
+    - Xm, for an interval of X calendar month(s);
+    - Xy, for an interval of X year(s);
+    - 'weekly', as an alternative for '1w';
+    - 'monthly', as an alternative for '1m';
+    - 'quarterly', as an alternative for '3m';
+    - 'yearly', as an alternative for '1y'.
+    """
+
+    name = 'interval'
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, relativedelta):
+            return value
+
+        value = value.lower()
+        if value == 'weekly':
+            return relativedelta(weeks=1)
+        elif value == 'monthly':
+            return relativedelta(months=1)
+        elif value == 'quarterly':
+            return relativedelta(months=3)
+        elif value == 'yearly':
+            return relativedelta(years=1)
+        elif m := re.match('^([0-9]+)([dwmy])?$', value):
+            n, f = m.groups()
+            if not f:
+                f = 'd'
+            d = {_periods[f]: int(n)}
+            return relativedelta(**d)
+        else:
+            self.fail(f"Cannot convert '{value}' to a time interval", param, ctx)
+
+
 Date = DateParamType()
+Interval = TimeIntervalParamType()

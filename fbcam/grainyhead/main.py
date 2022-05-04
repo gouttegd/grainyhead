@@ -24,13 +24,12 @@ import os
 import click
 from click_shell import shell
 from ghapi.core import GhApi
-from dateutil.relativedelta import relativedelta
 
 from . import __version__
 from .repository import Repository
 from .providers import OnlineRepositoryProvider
 from .caching import FileRepositoryProvider
-from .util import Date
+from .util import Date, Interval
 from .metrics import MetricsFormatter, MetricsReporter
 
 prog_name = "grh"
@@ -253,8 +252,8 @@ def _show_closing_issue(issue):
 @click.option('--format', '-f', 'fmt', default='markdown',
               type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
               help="""Write output in the specified format.""")
-@click.option('--period', '-p', default=None,
-              type=click.Choice(['weekly', 'monthly', 'quarterly', 'yearly']))
+@click.option('--period', '-p', type=Interval, default=None,
+              help="""Break down the metrics per time period.""")
 @click.pass_obj
 def metrics(grh, start, end, team, selector, fmt, period):
     """Get repository metrics.
@@ -267,16 +266,6 @@ def metrics(grh, start, end, team, selector, fmt, period):
         selector = ['all AS Total',
                     f'team:{team} AS Internal',
                     f'!team:{team} AS External']
-
-    if period is not None:
-        if period == 'weekly':
-            period = relativedelta(weeks=1)
-        elif period == 'monthly':
-            period = relativedelta(months=1)
-        elif period == 'quarterly':
-            period = relativedelta(months=3)
-        elif period == 'yearly':
-            period = relativedelta(years=1)
 
     metrics = reporter.get_report(selector, start, end, period)
 
