@@ -230,17 +230,29 @@ class MarkdownMetricsFormatter(MetricsFormatter):
         start = reportset.start_date
         end = reportset.end_date
 
+        with_total = reportset.contributions[0].selector == 'all'
+
         output.write(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}\n")
         output.write("\n")
 
-        output.write(f"| Event                | {reportset.contributions[0].name:8} |")
-        for report in reportset.contributions[1:]:
-            output.write(f" {report.name:8.8} | {report.name:4.4} (%) |")
-        output.write("\n")
-        output.write("| -------------------- | -------- |")
-        for report in reportset.contributions[1:]:
-            output.write(" -------- | -------- |")
-        output.write("\n")
+        output.write("| Event                |")
+        if with_total:
+            output.write(f" {reportset.contributions[0].name:8.8} |")
+            for report in reportset.contributions[1:]:
+                output.write(f" {report.name:8.8} | {report.name:4.4} (%) |")
+            output.write("\n")
+            output.write("| -------------------- | -------- |")
+            for report in reportset.contributions[1:]:
+                output.write(" -------- | -------- |")
+            output.write("\n")
+        else:
+            for report in reportset.contributions:
+                output.write(f" {report.name:8.8} |")
+            output.write("\n")
+            output.write("| -------------------- |")
+            for report in reportset.contributions:
+                output.write(" -------- |")
+            output.write("\n")
 
         items = [
             "Contributors",
@@ -255,19 +267,25 @@ class MarkdownMetricsFormatter(MetricsFormatter):
             ]
 
         for item in items:
-            self._write_line(item, reportset.contributions, output)
+            self._write_line(item, reportset.contributions, output, with_total)
         output.write('\n')
 
-    def _write_line(self, label, reports, output):
+    def _write_line(self, label, reports, output, with_total):
         property_name = label.lower().replace(' ', '_')
-        total = getattr(reports[0], property_name)
 
-        output.write(f"| {label:20} | {total: 8} |")
+        if with_total:
+            total = getattr(reports[0], property_name)
+            output.write(f"| {label:20} | {total: 8} |")
 
-        for report in reports[1:]:
-            value = getattr(report, property_name)
-            percent = value / total * 100
-            output.write(f" {value:8} | {percent: 8.2f} |")
+            for report in reports[1:]:
+                value = getattr(report, property_name)
+                percent = value / total * 100
+                output.write(f" {value:8} | {percent: 8.2f} |")
+        else:
+            output.write(f"| {label:20} |")
+            for report in reports:
+                value = getattr(report, property_name)
+                output.write(f" {value:8} |")
         output.write("\n")
 
 
