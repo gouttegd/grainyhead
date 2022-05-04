@@ -145,6 +145,8 @@ class MetricsReporter(object):
         elif selector.startswith('label:'):
             label = selector[6:]
             f = LabelFilter(label)
+            if selector == name:
+                name = label
         else:
             f = NullFilter()
 
