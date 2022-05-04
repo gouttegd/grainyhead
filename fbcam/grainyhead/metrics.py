@@ -120,6 +120,11 @@ class MetricsReporter(object):
             team_slug = selector[5:]
             members = [m.login for m in self._repo.get_team(team_slug)]
             f = TeamFilter(team_slug, members)
+        elif selector.startswith('user:'):
+            user_name = selector[5:]
+            f = UserFilter(user_name)
+            if selector == name:
+                name = f'@{user_name}'
         elif selector.startswith('label:'):
             label = selector[6:]
             f = LabelFilter(label)
@@ -434,6 +439,15 @@ class TeamFilter(ItemFilter):
 
     def filterRelease(self, release):
         return release.author.login in self._members
+
+
+class UserFilter(TeamFilter):
+
+    def __init__(self, user_name):
+        TeamFilter.__init__(self, None, [user_name])
+
+    def __str__(self):
+        return f'user:{self._members[0]}'
 
 
 class LabelFilter(ItemFilter):
