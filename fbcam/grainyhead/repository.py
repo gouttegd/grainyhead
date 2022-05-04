@@ -24,7 +24,6 @@ class Repository(object):
         self._provider = MemoryRepositoryProvider(backend)
         self._labels = None
         self._teams = None
-        self._contributors = None
 
     @property
     def issues(self):
@@ -66,14 +65,7 @@ class Repository(object):
 
     @property
     def contributors(self):
-        if self._contributors is None:
-            c = []
-            c.extend([i.user.login for i in self.all_issues])
-            c.extend([p.user.login for p in self.all_pull_requests])
-            c.extend([c.user.login for c in self.comments])
-            c.extend([e.actor.login for e in self.events])
-            self._contributors = set(c)
-        return self._contributors
+        return [m.login for m in self.get_team()]
 
     def get_team(self, name='__collaborators'):
         if self._teams is None:
