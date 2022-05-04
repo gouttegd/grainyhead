@@ -30,6 +30,8 @@ class MetricsReporter(object):
         self._repo = repository
 
     def get_report(self, selectors, start, end, period=None):
+        selectors = self._expand_wildcard_selectors(selectors)
+
         if period is None:
             return self._get_report_for_period(selectors, start, end)
         else:
@@ -105,6 +107,21 @@ class MetricsReporter(object):
             len(commits),
             len(releases),
             len(contributors)])
+
+    def _expand_wildcard_selectors(self, selectors):
+        if not True in ['*' in s for s in selectors]:
+            return selectors
+
+        expanded_selectors = []
+        for selector in selectors:
+            if selector == 'user:*':
+                expanded_selectors.extend([f'user:{u}' for u in self._repo.contributors])
+            elif selector == 'label:*':
+                expanded_selectors.extend([f'label:{l}' for l in self._repo.labels])
+            else:
+                expanded_selectors.append(selector)
+
+        return expanded_selectors
 
     def _get_filter_from_selector(self, selector, level=0):
         if ' AS ' in selector:
