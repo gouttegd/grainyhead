@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
-from fbcam.grainyhead import __version__
+from incenp.grainyhead import __version__
 
 setup(
     name='grainyhead',
@@ -40,13 +40,13 @@ setup(
         },
 
     packages=[
-        'fbcam',
-        'fbcam.grainyhead'
+        'incenp',
+        'incenp.grainyhead'
         ],
 
     entry_points={
         'console_scripts': [
-            'grh = fbcam.grainyhead.main:grh'
+            'grh = incenp.grainyhead.main:grh'
             ]
         },
 
