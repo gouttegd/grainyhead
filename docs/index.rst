@@ -15,3 +15,5 @@ It is written in Python and should work with Python 3.9+.
 
    install
    quickstart
+   old-issues
+   metrics

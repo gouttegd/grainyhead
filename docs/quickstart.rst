@@ -38,49 +38,13 @@ GrainyHead.
 
 Use the ``help`` command to get the list of available commands.
 
+The main commands are:
 
-Listing old issues
-------------------
-
-The ``issues`` command list all issues that have not been updated for a given
-amount of time (365 days by default). It produces a Markdown-formatted table
-giving, for each issue, its title, the user who authored it and whether that
-member is a known contributor to the repository, and the users to which the
-issue has been assigned, if any.
-
-With the ``--team`` option, the table will indicate whether the issue’s author
-is a member of the specified team, instead of whether they are a “known
-contributor”.
-
-The following example will list issues that have not been updated in the past
-6 months and indicate whether their authors belong to the *elite* team:
-
-.. code-block:: console
-
-   grh issues --older-than 6m --team elite
-
-
-Closing old issues
-------------------
-
-The ``close`` command will automatically close all issues that have not been
-updated for a given amount of time (365 days by default). A label
-``autoclosed-unfixed`` (which will be created if it didn’t already exist in
-the repository) will be added to those issues.
-
-If the ``--comment`` option is used on the, or if the configuration file contains a
-``close.comment`` option, a comment will be appended to each issues before
-they are closed.
-
-The command will list the issues that are to be closed and ask for
-confirmation before proceeding with the closing.
-
-Use the ``--limit N`` option to only close the *N* oldest issues.
-
-The following example will close the 30 oldest issues that have not been
-updated in the past 3 years:
-
-.. code-block:: console
-
-   grh close --older-than 3y --limit 30 \
-     --comment "This issue has been closed automatically."
+``issues``
+    :ref:`List old issues <listing-old-issues>` in the repository.
+    
+``close``
+    :ref:`Close old issues <closing-old-issues>` in the repository.
+    
+``metrics``:
+    :doc:`Print some statistics <metrics>` about the repository.

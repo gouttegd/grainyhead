@@ -7,6 +7,18 @@ from the command line.
 The name comes from the fruit fly gene _grainyhead_ (_grh_).
 
 
+Features
+--------
+Currently, GrainyHead allows to:
+
+* list “old” issues (issues that have not been updated for a while) in a
+  repository;
+* automatically close said “old” issues;
+* obtain some metrics about what happened in a repository (e.g. how many
+  issues were opened, how many pull requests were merged, how many
+  comments were added, etc.).
+
+
 Configuration
 -------------
 GrainyHead needs a configuration file. The default configuration file is
@@ -24,18 +36,15 @@ token: <access token>
 ```
 
 See [GitHub's documentation](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token)
-on how to get an access token. Note that in order to use the `--team`
-option in the various subcommands (e.g., to list which issues were
-created by an “external” contributor not on your development team), the
-access token needs the `read:org` permission.
+on how to get an access token. Note that some features of GrainyHead
+require that the token has the `read:org` permission.
 
 If the configuration file does not exist, you will be prompted for the
 repository URL and your access token when you first invoke the program.
 
 
-Main commands
--------------
-
+Usage
+-----
 Invoke `grh` with the `--help` option to get the list of available
 commands. Invoke a command with that same option to get a detailled help
 message for the command.
@@ -83,17 +92,17 @@ over a given period of time:
 $ grh metrics
 From 2021-09-02 to 2021-12-01
 
-| Event                | Total | Internal | External | Ext. (%) |
-| -------------------- | ----- | -------- | -------- | -------- |
-| Issues opened        |    71 |       64 |        7 |     9.86 |
-| Issues closed        |    89 |       77 |       12 |    13.48 |
-| Pull requests opened |    86 |       68 |       18 |    20.93 |
-| Pull requests closed |    94 |       78 |       16 |    17.02 |
-| Pull requests merged |    79 |       65 |       14 |    17.72 |
-| Comments             |   476 |      412 |       64 |    13.45 |
-| Commits              |   232 |      201 |       31 |    13.36 |
-| Contributors         |    24 |       15 |        9 |    37.50 |
-| Releases             |     4 |          |          |          |
+| Event                | Total | Internal | Inte (%) | External | Exte (%) |
+| -------------------- | ----- | -------- | -------- | -------- | -------- |
+| Contributors         |    24 |       15 |    62.50 |        9 |    37.50 |
+| Issues opened        |    71 |       64 |    90.14 |        7 |     9.86 |
+| Issues closed        |    89 |       77 |    86.52 |       12 |    13.48 |
+| Pull requests opened |    86 |       68 |    79.07 |       18 |    20.93 |
+| Pull requests closed |    94 |       78 |    82.98 |       16 |    17.02 |
+| Pull requests merged |    79 |       65 |    82.28 |       14 |    17.72 |
+| Comments             |   476 |      412 |    86.55 |       64 |    13.45 |
+| Commits              |   232 |      201 |    86.64 |       31 |    13.36 |
+| Releases             |     4 |        4 |   100.00 |        0 |     0.00 |
 ```
 
 
@@ -102,3 +111,12 @@ Copying
 GrainyHead is distributed under the terms of the GNU General Public
 License, version 3 or higher. The full license is included in the
 [COPYING file](COPYING) of the source distribution.
+
+
+Homepage and repository
+-----------------------
+
+The project is located at <https://incenp.org/dvlpt/grainyhead.html>
+with the manual at <https://incenp.org/dvlpt/grainyhead/index.html>.
+The source code is available in a Git repository at
+<https://github.com/gouttegd/grainyhead>.

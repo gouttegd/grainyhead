@@ -148,7 +148,7 @@ def grh(ctx, config, section, no_cache):
               help="""Only list issues that have not been updated since the
                       specified date or for the specified duration
                       (default=1y, or one year ago).""")
-@click.option('--team', default='__collaborators',
+@click.option('--team', default='__collaborators', metavar='NAME',
               help="""The name of a GitHub team.""")
 @click.pass_obj
 def list_issues(grh, cutoff, team):
@@ -245,20 +245,24 @@ def _show_closing_issue(issue):
 @click.option('--to', 'end', type=Date, default='now',
               help="""Set the end of the reporting period.
                       Default to now.""")
-@click.option('--team', default='__collaborators',
+@click.option('--team', default='__collaborators', metavar='NAME',
               help="""The name of a GitHub team.""")
-@click.option('--selector', '-s', multiple=True, default=[],
+@click.option('--selector', '-s', multiple=True, default=[], metavar='SELECTOR',
               help="""Select a subset of repository events.""")
 @click.option('--format', '-f', 'fmt', default='markdown',
               type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
               help="""Write output in the specified format.""")
 @click.option('--period', '-p', type=Interval, default=None,
-              help="""Break down the metrics per time period.""")
+              help="""Break down the metrics per periods of the
+                      specified duration.""")
 @click.pass_obj
 def metrics(grh, start, end, team, selector, fmt, period):
     """Get repository metrics.
     
-    This command prints some metrics from the repository.
+    This command collects and prints the number of repository events
+    (such as the opening and closing of issues, commits, etc.) that
+    occurred over a given period of time, as well as the number of
+    individual contributors that caused those events.
     """
 
     reporter = MetricsReporter(grh.repository)
@@ -278,7 +282,9 @@ def metrics(grh, start, end, team, selector, fmt, period):
 def conf(grh):
     """Edit the configuration.
     
-    This command configures GrainyHead for use with a repository.
+    This command either creates a new basic configuration file for use
+    with a repository or starts a text editor to edit the current
+    configuration file if it already exists.
     """
 
     if grh.has_config:
@@ -316,7 +322,6 @@ try:
 
         api = grh.repository._api
         repo = grh.repository
-        generator = ReportGenerator()
         embed()
 
 except ImportError:
