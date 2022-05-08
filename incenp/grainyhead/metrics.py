@@ -279,7 +279,10 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
             for report in reports[1:]:
                 value = getattr(report, property_name)
-                percent = value / total * 100
+                if total > 0:
+                    percent = value / total * 100
+                else:
+                    percent = 0.0
                 output.write(f" {value:8} | {percent: 8.2f} |")
         else:
             output.write(f"| {label:20} |")
