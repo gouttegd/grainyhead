@@ -32,7 +32,8 @@ setup(
 
     install_requires=[
         'click_shell >= 2.1',
-        'ghapi'
+        'ghapi',
+        'dateutil'
         ],
 
     extras_require={
