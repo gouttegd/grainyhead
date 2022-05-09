@@ -76,7 +76,7 @@ class TimeIntervalParamType(click.ParamType):
     """A parameter type for Click representing a time interval.
     
     This parameter accepts:
-    - Xd (or simply X), for an intervak of X day(s);
+    - Xd (or simply X), for an interval of X day(s);
     - Xw, for an interval of X week(s);
     - Xm, for an interval of X calendar month(s);
     - Xy, for an interval of X year(s);
