@@ -2,6 +2,8 @@
 Getting Started
 ***************
 
+.. _new-conf:
+
 Creating a configuration file
 =============================
 
@@ -46,5 +48,5 @@ The main commands are:
 ``close``
     :ref:`Close old issues <closing-old-issues>` in the repository.
     
-``metrics``:
+``metrics``
     :doc:`Print some statistics <metrics>` about the repository.

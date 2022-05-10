@@ -17,3 +17,4 @@ It is written in Python and should work with Python 3.9+.
    quickstart
    old-issues
    metrics
+   configuration
