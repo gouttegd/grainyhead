@@ -53,7 +53,7 @@ Each section must have two keys:
     (e.g., ``https://github.com/gouttegd/grainyhead``), or more simply just the
     name of the GitHub account followed by the name of the repository (e.g.,
     ``gouttegd/grainyhead``).
-    
+
 ``token``
     This is the *personal access token* needed to access the repository through
     the GitHub API. See `GitHub documentation`_ for details on how to obtain

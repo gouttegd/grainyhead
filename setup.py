@@ -1,5 +1,5 @@
 # grainyhead - Helper tools for GitHub
-# Copyright © 2021 Damien Goutte-Gattat
+# Copyright © 2021,2022 Damien Goutte-Gattat
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,17 +17,23 @@
 from setuptools import setup
 from incenp.grainyhead import __version__
 
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
+
 setup(
     name='grainyhead',
     version=__version__,
     description='Helper tools for GitHub',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Damien Goutte-Gattat',
     author_email='dpg44@cam.ac.uk',
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',
-        'Licence :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Programming Language :: Python :: 3.9'
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'Programming Language :: Python :: 3.9',
+        'Intended Audience :: Developers'
         ],
 
     install_requires=[

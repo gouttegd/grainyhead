@@ -1,5 +1,5 @@
 # grainyhead - Helper tools for GitHub
-# Copyright © 2021 Damien Goutte-Gattat
+# Copyright © 2021,2022 Damien Goutte-Gattat
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ from .metrics import MetricsFormatter, MetricsReporter
 prog_name = "grh"
 prog_notice = f"""\
 {prog_name} (GrainyHead {__version__})
-Copyright © 2021 Damien Goutte-Gattat
+Copyright © 2022 Damien Goutte-Gattat
 
 This program is released under the GNU General Public License.
 See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.

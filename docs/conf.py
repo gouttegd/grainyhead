@@ -3,7 +3,7 @@
 source_suffix = '.rst'
 master_doc = 'index'
 
-copyright = u'2021 Damien Goutte-Gattat'
+copyright = u'2021,2022 Damien Goutte-Gattat'
 author = u'Damien Goutte-Gattat <dpg44@cam.ac.uk>'
 
 language = 'en'
