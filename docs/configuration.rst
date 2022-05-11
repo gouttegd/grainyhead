@@ -64,3 +64,23 @@ Each section must have two keys:
 Note that even if you use a single token to access several repositories
 (possibly all your repositories), the token must be explicitly specified in each
 configuration section.
+
+
+Sample file
+===========
+
+Here is a sample configuration file for GrainyHead:
+
+.. code-block:: ini
+
+   [default]
+   repository: https://github.com/gouttegd/grainyhead
+   token: ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   
+   [bio]
+   repository: gouttegd/biopython
+   token: ghp_YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+
+With such a file, calling ``grh -s bio`` will make any subcommand work on the
+*Biopython* repository. Calling simply ``grh`` will make the subcommands work on
+the *GrainyHead* repository.

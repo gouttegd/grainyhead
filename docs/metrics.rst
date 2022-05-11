@@ -24,6 +24,13 @@ during the reporting period:
 In addition, it also collects the number of individual contributors that caused
 those events to occur.
 
+Note that to gather those informations, the ``metrics`` command has to download
+a potentially large amount of data from GitHub. Those data are cached on disk to
+make subsequent calls faster, but the first time the ``metrics`` command is run
+on any given repository, it can take several minutes for the command to complete
+(depending on the size of the repository and the quality of the network
+connection).
+
 
 Default report
 --------------
