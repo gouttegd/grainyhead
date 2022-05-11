@@ -33,7 +33,7 @@ GrainyHead requires the following Python dependencies to work:
 
 * `click-shell <https://github.com/clarkperkins/click-shell>`_
 * `ghapi <https://ghapi.fast.ai/>`_
-* `dateutil <https://github.com/dateutil/dateutil>`_
+* `python-dateutil <https://github.com/dateutil/dateutil>`_
 
 Install those dependencies with ``pip``:
 

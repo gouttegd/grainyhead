@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'click_shell >= 2.1',
         'ghapi',
-        'dateutil'
+        'python-dateutil'
         ],
 
     extras_require={
