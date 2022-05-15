@@ -55,13 +55,8 @@ class DateParamType(click.ParamType):
             return datetime.now(timezone.utc)
         elif value.lower() == 'origin':
             return datetime.min.replace(tzinfo=timezone.utc)
-        elif m := re.match('^([0-9]+)([dwmy])?$', value):
-            n, f = m.groups()
-            if not f:
-                f = 'd'
-            now = datetime.now(timezone.utc)
-            delta = timedelta(days=int(n) * _durations[f])
-            return now - delta
+        elif (delta := parse_duration(value)) is not None:
+            return datetime.now(timezone.utc) - delta
         else:
             for fmt in _date_formats:
                 try:
@@ -101,14 +96,39 @@ class TimeIntervalParamType(click.ParamType):
             return relativedelta(months=3)
         elif value == 'yearly':
             return relativedelta(years=1)
-        elif m := re.match('^([0-9]+)([dwmy])?$', value):
-            n, f = m.groups()
-            if not f:
-                f = 'd'
+        elif (interval := parse_duration(value, True)) is not None:
+            return interval
+        else:
+            self.fail(f"Cannot convert '{value}' to a time interval", param, ctx)
+
+
+def parse_duration(value, relative=False):
+    """Parse a string representing a duration.
+    
+    This function parses a string of the form 'Nf', where N is a
+    positive number and f is a one-letter code representing a time unit:
+    'd' for days, 'w' for weeks, 'm' for months, and 'y' for years. If f
+    is omitted, 'd' is assumed.
+    
+    The returned value is a :class:`datetime.timedelta` object by
+    default. If the 'relative' parameter is True, then the function
+    returns a :class:`dateutil.relativedelta` object instead.
+    
+    In any case, if the provided value does not match the expected 'Nf'
+    form, the function returns None.
+    """
+
+    if m := re.match('^([0-9]+)([dwmy])?', value):
+        n, f = m.groups()
+        if not f:
+            f = 'd'
+        if relative:
             d = {_periods[f]: int(n)}
             return relativedelta(**d)
         else:
-            self.fail(f"Cannot convert '{value}' to a time interval", param, ctx)
+            return timedelta(days=int(n) * _durations[f])
+    else:
+        return None
 
 
 Date = DateParamType()
