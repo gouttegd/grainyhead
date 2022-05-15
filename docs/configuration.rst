@@ -65,6 +65,9 @@ Note that even if you use a single token to access several repositories
 (possibly all your repositories), the token must be explicitly specified in each
 configuration section.
 
+An optional key, ``caching``, can be used to control the file cache. See the
+:doc:`Caching <caching>` section for details on that option.
+
 
 Sample file
 ===========
