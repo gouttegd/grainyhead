@@ -28,7 +28,7 @@ from ghapi.core import GhApi
 from . import __version__
 from .repository import Repository
 from .providers import OnlineRepositoryProvider
-from .caching import FileRepositoryProvider
+from .caching import FileRepositoryProvider, CachePolicy
 from .util import Date, Interval
 from .metrics import MetricsFormatter, MetricsReporter
 
@@ -65,7 +65,7 @@ class GrhContext(object):
         self._has_config = len(self._config.read(config_file)) > 0
 
         self._repo = None
-        self._cache = True
+        self._cache_policy = None
 
     def reset(self, section='default', config_file=None, options=None):
         self._repo = None
@@ -85,9 +85,6 @@ class GrhContext(object):
     def get_option(self, key, fallback=_UNSET):
         return self._config.get(self._name, key, fallback=fallback)
 
-    def disable_cache(self):
-        self._cache = False
-
     @property
     def repository(self):
         if not self._repo:
@@ -95,9 +92,9 @@ class GrhContext(object):
             owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
             api = GhApi(owner=owner, repo=repo, org=owner, token=token)
-            backend = OnlineRepositoryProvider(api)
-            if self._cache:
-                backend = FileRepositoryProvider(self.cache_dir, backend)
+            backend = FileRepositoryProvider(self.cache_dir,
+                                             OnlineRepositoryProvider(api),
+                                             self.cache_policy)
             self._repo = Repository(api, backend)
         return self._repo
 
@@ -112,6 +109,18 @@ class GrhContext(object):
     @property
     def config(self):
         return self._config
+
+    @property
+    def cache_policy(self):
+        if self._cache_policy is not None:
+            return self._cache_policy
+        else:
+            cache_spec = self.get_option('caching', '30d')
+            return CachePolicy.from_string(cache_spec)
+
+    @cache_policy.setter
+    def cache_policy(self, policy):
+        self._cache_policy = policy
 
     @property
     def cache_dir(self):
@@ -129,15 +138,20 @@ class GrhContext(object):
 @click.option('--section', '-s', default='default',
               help="Name of the configuration file section to use.")
 @click.option('--no-cache', is_flag=True, default=False,
-              help="Disable the file cache.")
+              help="""Disable the file cache (deprecated: use
+                      --caching=disabled instead).""")
+@click.option('--caching', type=CachePolicy.ClickType, default=None,
+              help="Set the caching policy.")
 @click.version_option(version=__version__, message=prog_notice)
 @click.pass_context
-def grh(ctx, config, section, no_cache):
+def grh(ctx, config, section, no_cache, caching):
     """Command-line tool for GitHub."""
 
     context = GrhContext(config, section)
     if no_cache:
-        context.disable_cache()
+        caching = CachePolicy.DISABLED
+    if caching is not None:
+        context.cache_policy = caching
     ctx.obj = context
     if not context.has_config:
         ctx.invoke(conf)
