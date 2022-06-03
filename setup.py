@@ -33,35 +33,17 @@ setup(
         'Environment :: Console',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Programming Language :: Python :: 3.9',
-        'Intended Audience :: Developers'
-        ],
-
-    install_requires=[
-        'click_shell >= 2.1',
-        'ghapi',
-        'python-dateutil'
-        ],
-
-    extras_require={
-        'IPython': ['ipython']
-        },
-
-    packages=[
-        'incenp',
-        'incenp.grainyhead'
-        ],
-
-    entry_points={
-        'console_scripts': [
-            'grh = incenp.grainyhead.main:grh'
-            ]
-        },
-
+        'Intended Audience :: Developers',
+    ],
+    install_requires=['click_shell >= 2.1', 'ghapi', 'python-dateutil'],
+    extras_require={'IPython': ['ipython']},
+    packages=['incenp', 'incenp.grainyhead'],
+    entry_points={'console_scripts': ['grh = incenp.grainyhead.main:grh']},
     command_options={
         'build_sphinx': {
             'project': ('setup.py', 'GrainyHead'),
             'version': ('setup.py', __version__),
-            'release': ('setup.py', __version__)
-            }
+            'release': ('setup.py', __version__),
         }
-    )
+    },
+)

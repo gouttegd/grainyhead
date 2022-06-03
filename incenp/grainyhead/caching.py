@@ -22,8 +22,7 @@ import time
 
 from fastcore.xtras import dict2obj, obj2dict
 
-from .providers import (RepositoryProvider, RepositoryItemType,
-                        GITHUB_DATE_FORMAT)
+from .providers import RepositoryProvider, RepositoryItemType, GITHUB_DATE_FORMAT
 from .util import parse_duration
 
 
@@ -32,7 +31,7 @@ class CachePolicy(object):
 
     def __init__(self, max_age):
         """Creates a new instance.
-        
+
         If positive, the 'max_age' parameter is the number of seconds
         after which a cached file should be refreshed. This parameter
         can also accept some special values:
@@ -47,7 +46,7 @@ class CachePolicy(object):
 
     def refresh(self, age):
         """Indicates whether a refresh should occur.
-        
+
         :param age: the modification time of the cached file, in seconds
             since the Unix epoch
         :return: True if the file should be refreshed, False otherwise
@@ -131,8 +130,9 @@ class CachePolicy(object):
                     if p := cls.from_string(value):
                         return p
                     else:
-                        self.fail(f"Cannot convert '{value}' to a cache policy",
-                                  param, ctx)
+                        self.fail(
+                            f"Cannot convert '{value}' to a cache policy", param, ctx
+                        )
 
             cls._click_type = CachePolicyParamType()
 
@@ -189,8 +189,7 @@ class FileRepositoryProvider(RepositoryProvider):
             return None
         elif item_type == RepositoryItemType.COMMITS:
             # Only get new commits
-            return datetime.strptime(data[-1].commit.author.date,
-                                     GITHUB_DATE_FORMAT)
+            return datetime.strptime(data[-1].commit.author.date, GITHUB_DATE_FORMAT)
         else:
             # Only get new other items
             return datetime.strptime(data[-1].created_at, GITHUB_DATE_FORMAT)

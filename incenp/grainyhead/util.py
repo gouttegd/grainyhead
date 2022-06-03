@@ -20,12 +20,9 @@ import re
 
 import click
 
-_durations = { 'd': 1, 'w': 7, 'm': 30, 'y': 365 }
-_periods = { 'd': 'days', 'w': 'weeks', 'm': 'months', 'y': 'years'}
-_date_formats = [
-    '%Y-%m-%d',
-    '%Y-%m'
-    ]
+_durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
+_periods = {'d': 'days', 'w': 'weeks', 'm': 'months', 'y': 'years'}
+_date_formats = ['%Y-%m-%d', '%Y-%m']
 
 
 class DateParamType(click.ParamType):
@@ -69,7 +66,7 @@ class DateParamType(click.ParamType):
 
 class TimeIntervalParamType(click.ParamType):
     """A parameter type for Click representing a time interval.
-    
+
     This parameter accepts:
     - Xd (or simply X), for an interval of X day(s);
     - Xw, for an interval of X week(s);
@@ -104,16 +101,16 @@ class TimeIntervalParamType(click.ParamType):
 
 def parse_duration(value, relative=False):
     """Parse a string representing a duration.
-    
+
     This function parses a string of the form 'Nf', where N is a
     positive number and f is a one-letter code representing a time unit:
     'd' for days, 'w' for weeks, 'm' for months, and 'y' for years. If f
     is omitted, 'd' is assumed.
-    
+
     The returned value is a :class:`datetime.timedelta` object by
     default. If the 'relative' parameter is True, then the function
     returns a :class:`dateutil.relativedelta` object instead.
-    
+
     In any case, if the provided value does not match the expected 'Nf'
     form, the function returns None.
     """

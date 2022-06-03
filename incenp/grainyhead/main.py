@@ -56,7 +56,6 @@ def _parse_github_url(url):
 
 
 class GrhContext(object):
-
     def __init__(self, config_file, section='default'):
         self._config_file = config_file
         self._name = section
@@ -92,9 +91,9 @@ class GrhContext(object):
             owner, repo = _parse_github_url(repo_url)
             token = self._config.get(self._name, 'token', fallback=None)
             api = GhApi(owner=owner, repo=repo, org=owner, token=token)
-            backend = FileRepositoryProvider(self.cache_dir,
-                                             OnlineRepositoryProvider(api),
-                                             self.cache_policy)
+            backend = FileRepositoryProvider(
+                self.cache_dir, OnlineRepositoryProvider(api), self.cache_policy
+            )
             self._repo = Repository(api, backend)
         return self._repo
 
@@ -124,24 +123,38 @@ class GrhContext(object):
 
     @property
     def cache_dir(self):
-        xdg_data_dir = os.getenv('XDG_DATA_HOME',
-                                 os.path.join(os.getenv('HOME'),
-                                              '.local', 'share'))
+        xdg_data_dir = os.getenv(
+            'XDG_DATA_HOME', os.path.join(os.getenv('HOME'), '.local', 'share')
+        )
         return os.path.join(xdg_data_dir, 'grainyhead', self._name)
 
 
-@shell(context_settings={'help_option_names': ['-h', '--help']},
-       prompt="grh> ")
-@click.option('--config', '-c', type=click.Path(exists=False),
-              default='{}/config'.format(click.get_app_dir('grainyhead')),
-              help="Path to an alternative configuration file.")
-@click.option('--section', '-s', default='default',
-              help="Name of the configuration file section to use.")
-@click.option('--no-cache', is_flag=True, default=False,
-              help="""Disable the file cache (deprecated: use
-                      --caching=disabled instead).""")
-@click.option('--caching', type=CachePolicy.ClickType, default=None,
-              help="Set the caching policy.")
+@shell(context_settings={'help_option_names': ['-h', '--help']}, prompt="grh> ")
+@click.option(
+    '--config',
+    '-c',
+    type=click.Path(exists=False),
+    default='{}/config'.format(click.get_app_dir('grainyhead')),
+    help="Path to an alternative configuration file.",
+)
+@click.option(
+    '--section',
+    '-s',
+    default='default',
+    help="Name of the configuration file section to use.",
+)
+@click.option(
+    '--no-cache',
+    is_flag=True,
+    default=False,
+    help="Disable the file cache (deprecated: use --caching=disabled instead).",
+)
+@click.option(
+    '--caching',
+    type=CachePolicy.ClickType,
+    default=None,
+    help="Set the caching policy.",
+)
 @click.version_option(version=__version__, message=prog_notice)
 @click.pass_context
 def grh(ctx, config, section, no_cache, caching):
@@ -158,16 +171,24 @@ def grh(ctx, config, section, no_cache, caching):
 
 
 @grh.command(name='issues')
-@click.option('--older-than', 'cutoff', default='1y', type=Date,
-              help="""Only list issues that have not been updated since the
-                      specified date or for the specified duration
-                      (default=1y, or one year ago).""")
-@click.option('--team', default='__collaborators', metavar='NAME',
-              help="""The name of a GitHub team.""")
+@click.option(
+    '--older-than',
+    'cutoff',
+    default='1y',
+    type=Date,
+    help="""Only list issues that have not been updated since the specified date
+            or for the specified duration (default=1y, or one year ago).""",
+)
+@click.option(
+    '--team',
+    default='__collaborators',
+    metavar='NAME',
+    help="The name of a GitHub team.",
+)
 @click.pass_obj
 def list_issues(grh, cutoff, team):
     """List open issues.
-    
+
     This commands list open issues that have not been updated for a
     given amount of time.
     """
@@ -181,36 +202,54 @@ def list_issues(grh, cutoff, team):
     print("| ----- | ------ | ----- | ----------- |")
 
     for issue in issues:
-        assignees = ', '.join(['@[{}]({})'.format(a.login, a.html_url) for a in issue.assignees])
+        assignees = ', '.join(
+            ['@[{}]({})'.format(a.login, a.html_url) for a in issue.assignees]
+        )
         is_team = 'Yes' if issue.user.login in members else 'No'
 
-        print(f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |")
+        print(
+            f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |"
+        )
 
 
 @grh.command(name='close')
-@click.option('--older-than', 'cutoff', default='1y', type=Date,
-              help="""Close issues that have not been updated since the
-                      specified date or for the specified duration
-                      (default=1y, or one year ago).""")
-@click.option('--comment', '-c', default=None,
-              help="""Text of the comment to add to the closed issues.""")
-@click.option('--dry-run', '-d', is_flag=True, default=False,
-              help="""List issues that would be closed without actually
-                      closing them.""")
-@click.option('--limit', '-l', default=-1, metavar='N',
-              help="""Only close the N oldest issues.""")
+@click.option(
+    '--older-than',
+    'cutoff',
+    default='1y',
+    type=Date,
+    help="""Close issues that have not been updated since the specified date
+            or for the specified duration (default=1y, or one year ago).""",
+)
+@click.option(
+    '--comment',
+    '-c',
+    default=None,
+    help="Text of the comment to add to the closed issues.",
+)
+@click.option(
+    '--dry-run',
+    '-d',
+    is_flag=True,
+    default=False,
+    help="List issues that would be closed without actually closing them.",
+)
+@click.option(
+    '--limit', '-l', default=-1, metavar='N', help="Only close the N oldest issues."
+)
 @click.pass_obj
 def auto_close(grh, comment, cutoff, dry_run, limit):
     """Close old issues.
-    
+
     This command automatically closes issues that have not been updated
     for a given amount of time.
     """
 
     repo = grh.repository
 
-    repo.create_label('autoclosed-unfixed', 'ff7000',
-                      'This issue has been closed automatically.')
+    repo.create_label(
+        'autoclosed-unfixed', 'ff7000', 'This issue has been closed automatically.'
+    )
 
     if not comment:
         comment = grh.get_option('close.comment', fallback=None)
@@ -253,26 +292,55 @@ def _show_closing_issue(issue):
 
 
 @grh.command()
-@click.option('--from', 'start', type=Date, default='6m',
-              help="""Set the beginning of the reporting period.
-                      Default to 6m (6 months ago).""")
-@click.option('--to', 'end', type=Date, default='now',
-              help="""Set the end of the reporting period.
-                      Default to now.""")
-@click.option('--team', default='__collaborators', metavar='NAME',
-              help="""The name of a GitHub team.""")
-@click.option('--selector', '-s', multiple=True, default=[], metavar='SELECTOR',
-              help="""Select a subset of repository events.""")
-@click.option('--format', '-f', 'fmt', default='markdown',
-              type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
-              help="""Write output in the specified format.""")
-@click.option('--period', '-p', type=Interval, default=None,
-              help="""Break down the metrics per periods of the
-                      specified duration.""")
+@click.option(
+    '--from',
+    'start',
+    type=Date,
+    default='6m',
+    help="""Set the beginning of the reporting period.
+                      Default to 6m (6 months ago).""",
+)
+@click.option(
+    '--to',
+    'end',
+    type=Date,
+    default='now',
+    help="""Set the end of the reporting period.
+                      Default to now.""",
+)
+@click.option(
+    '--team',
+    default='__collaborators',
+    metavar='NAME',
+    help="The name of a GitHub team.",
+)
+@click.option(
+    '--selector',
+    '-s',
+    multiple=True,
+    default=[],
+    metavar='SELECTOR',
+    help="Select a subset of repository events.",
+)
+@click.option(
+    '--format',
+    '-f',
+    'fmt',
+    default='markdown',
+    type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
+    help="Write output in the specified format.",
+)
+@click.option(
+    '--period',
+    '-p',
+    type=Interval,
+    default=None,
+    help="Break down the metrics per periods of the specified duration.",
+)
 @click.pass_obj
 def metrics(grh, start, end, team, selector, fmt, period):
     """Get repository metrics.
-    
+
     This command collects and prints the number of repository events
     (such as the opening and closing of issues, commits, etc.) that
     occurred over a given period of time, as well as the number of
@@ -281,9 +349,11 @@ def metrics(grh, start, end, team, selector, fmt, period):
 
     reporter = MetricsReporter(grh.repository)
     if len(selector) == 0:
-        selector = ['all AS Total',
-                    f'team:{team} AS Internal',
-                    f'!team:{team} AS External']
+        selector = [
+            'all AS Total',
+            f'team:{team} AS Internal',
+            f'!team:{team} AS External',
+        ]
 
     metrics = reporter.get_report(selector, start, end, period)
 
@@ -295,7 +365,7 @@ def metrics(grh, start, end, team, selector, fmt, period):
 @click.pass_obj
 def conf(grh):
     """Edit the configuration.
-    
+
     This command either creates a new basic configuration file for use
     with a repository or starts a text editor to edit the current
     configuration file if it already exists.
@@ -308,8 +378,10 @@ def conf(grh):
         opts = {}
         opts['repository'] = click.termui.prompt("Repository name or URL")
 
-        click.echo("Visit https://github.com/settings/tokens to create "
-                   "a personal access token.")
+        click.echo(
+            "Visit https://github.com/settings/tokens to create "
+            "a personal access token."
+        )
         opts['token'] = click.termui.prompt("Token")
         grh.reset(options=opts)
 
@@ -328,7 +400,7 @@ try:
     @click.pass_obj
     def python_shell(grh):
         """Start an interactive Python shell.
-    
+
         This commands starts a Python shell from where the GitHub API
         can be directly manipulated through the 'api' object. This is
         intended for testing purposes.

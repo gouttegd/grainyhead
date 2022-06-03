@@ -43,7 +43,7 @@ class RepositoryItemType(Enum):
 
 class RepositoryItem(AttrDict):
     """An item from a GitHub repository.
-    
+
     This class extends the AttrDict class used by GhApi to provide
     helper methods to manipulate the items.
     """
@@ -72,7 +72,7 @@ class RepositoryItem(AttrDict):
 
 class IssueItem(RepositoryItem):
     """A GitHub issue.
-    
+
     This can be either an actual "issue" or a "pull requests".
     """
 
@@ -103,7 +103,7 @@ class RepositoryProvider(object):
 
     def get_data(self, item_type, since=None):
         """Gets a specific type of data from the repository.
-        
+
         :param item_type: the type of data to fetch
         :param since: only fetch data from after that timestamp
         :return: an array of AttrDict objects
@@ -113,13 +113,19 @@ class RepositoryProvider(object):
 
     @property
     def issues(self):
-        return [i for i in self.get_data(RepositoryItemType.ISSUES)
-                if not hasattr(i, 'pull_request')]
+        return [
+            i
+            for i in self.get_data(RepositoryItemType.ISSUES)
+            if not hasattr(i, 'pull_request')
+        ]
 
     @property
     def pull_requests(self):
-        return [i for i in self.get_data(RepositoryItemType.ISSUES)
-                if hasattr(i, 'pull_request')]
+        return [
+            i
+            for i in self.get_data(RepositoryItemType.ISSUES)
+            if hasattr(i, 'pull_request')
+        ]
 
     @property
     def comments(self):
@@ -151,7 +157,7 @@ class OnlineRepositoryProvider(RepositoryProvider):
 
     def __init__(self, api):
         """Creates a new instance.
-        
+
         :param api: a ghapi.core.GhApi object
         """
 
@@ -161,17 +167,19 @@ class OnlineRepositoryProvider(RepositoryProvider):
             RepositoryItemType.LABELS: api.issues.list_labels_for_repo,
             RepositoryItemType.EVENTS: api.issues.list_events_for_repo,
             RepositoryItemType.COMMITS: api.repos.list_commits,
-            RepositoryItemType.RELEASES: api.repos.list_releases
-            }
-        self._calls_without_since = [api.issues.list_events_for_repo,
-                                     api.repos.list_releases]
+            RepositoryItemType.RELEASES: api.repos.list_releases,
+        }
+        self._calls_without_since = [
+            api.issues.list_events_for_repo,
+            api.repos.list_releases,
+        ]
 
     def get_data(self, item_type, since=None):
         data = None
         if item_type == RepositoryItemType.ISSUES:
-            data = self._fetch(self._api.issues.list_for_repo,
-                               apiargs={'state': 'all'},
-                               since=since)
+            data = self._fetch(
+                self._api.issues.list_for_repo, apiargs={'state': 'all'}, since=since
+            )
         elif item_type == RepositoryItemType.TEAMS:
             data = self._fetch_teams()
         else:
@@ -223,8 +231,9 @@ class OnlineRepositoryProvider(RepositoryProvider):
         try:
             teams.extend(self._fetch(self._api.teams.list))
         except HTTP4xxClientError:
-            logging.warn("Cannot get teams list (possibly due to "
-                         "insufficient access rights)")
+            logging.warn(
+                "Cannot get teams list (possibly due to " "insufficient access rights)"
+            )
 
         for team in teams:
             team['members'] = self._fetch_team_members(team.slug)
@@ -237,11 +246,14 @@ class OnlineRepositoryProvider(RepositoryProvider):
             if slug == '__collaborators':
                 members = self._fetch(self._api.repos.list_collaborators)
             else:
-                members = self._fetch(self._api.teams.list_members_in_org,
-                                      {'team_slug': slug})
+                members = self._fetch(
+                    self._api.teams.list_members_in_org, {'team_slug': slug}
+                )
         except HTTP4xxClientError:
-            logging.warn("Cannot get team members (possibly due to "
-                         "insufficient access rights)")
+            logging.warn(
+                "Cannot get team members (possibly due to "
+                "insufficient access rights)"
+            )
 
         return members
 
@@ -254,12 +266,12 @@ class MemoryRepositoryProvider(RepositoryProvider):
         RepositoryItemType.COMMITS: CommitItem,
         RepositoryItemType.COMMENTS: RepositoryItem,
         RepositoryItemType.EVENTS: RepositoryItem,
-        RepositoryItemType.RELEASES: RepositoryItem
-        }
+        RepositoryItemType.RELEASES: RepositoryItem,
+    }
 
     def __init__(self, backend):
         """Creates a new instance.
-        
+
         :param backend: a RepositoryProvider object from which to fetch
             the data that are not already in memory
         """

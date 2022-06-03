@@ -23,7 +23,7 @@ class MetricsReporter(object):
 
     def __init__(self, repository):
         """Create a new instance.
-        
+
         :param repository: the repository to work with
         """
 
@@ -40,8 +40,9 @@ class MetricsReporter(object):
 
             while not done:
                 period_end = start + period - timedelta(days=1)
-                reports.append(self._get_report_for_period(selectors, start,
-                                                           period_end))
+                reports.append(
+                    self._get_report_for_period(selectors, start, period_end)
+                )
 
                 if period_end > end:
                     done = True
@@ -63,31 +64,36 @@ class MetricsReporter(object):
     def get_single_report(self, item_filter):
         """Get a single report object based on the given filter."""
 
-        issues_opened = [i for i in self._repo.all_issues
-                         if item_filter.filterIssue(i)]
-        issues_closes = [e for e in self._repo.events
-                         if e.event == 'closed'
-                         and not hasattr(e.issue, 'pull_request')
-                         and item_filter.filterEvent(e)]
+        issues_opened = [i for i in self._repo.all_issues if item_filter.filterIssue(i)]
+        issues_closes = [
+            e
+            for e in self._repo.events
+            if e.event == 'closed'
+            and not hasattr(e.issue, 'pull_request')
+            and item_filter.filterEvent(e)
+        ]
 
-        pulls_opened = [p for p in self._repo.all_pull_requests
-                        if item_filter.filterIssue(p)]
-        pulls_closes = [e for e in self._repo.events
-                        if e.event == 'closed'
-                        and hasattr(e.issue, 'pull_request')
-                        and item_filter.filterEvent(e)]
-        pulls_merged = [e for e in self._repo.events
-                        if e.event == 'merged'
-                        and item_filter.filterEvent(e)]
+        pulls_opened = [
+            p for p in self._repo.all_pull_requests if item_filter.filterIssue(p)
+        ]
+        pulls_closes = [
+            e
+            for e in self._repo.events
+            if e.event == 'closed'
+            and hasattr(e.issue, 'pull_request')
+            and item_filter.filterEvent(e)
+        ]
+        pulls_merged = [
+            e
+            for e in self._repo.events
+            if e.event == 'merged' and item_filter.filterEvent(e)
+        ]
 
-        comments = [c for c in self._repo.comments
-                    if item_filter.filterComment(c)]
+        comments = [c for c in self._repo.comments if item_filter.filterComment(c)]
 
-        commits = [c for c in self._repo.commits
-                   if item_filter.filterCommit(c)]
+        commits = [c for c in self._repo.commits if item_filter.filterCommit(c)]
 
-        releases = [r for r in self._repo.releases
-                    if item_filter.filterRelease(r)]
+        releases = [r for r in self._repo.releases if item_filter.filterRelease(r)]
 
         contributors = []
         contributors.extend([i.user.login for i in issues_opened])
@@ -97,16 +103,21 @@ class MetricsReporter(object):
         contributors.extend([e.actor.login for e in pulls_closes])
         contributors = set(contributors)
 
-        return _Report(str(item_filter), item_filter.name, [
-            len(issues_opened),
-            len(issues_closes),
-            len(pulls_opened),
-            len(pulls_closes),
-            len(pulls_merged),
-            len(comments),
-            len(commits),
-            len(releases),
-            len(contributors)])
+        return _Report(
+            str(item_filter),
+            item_filter.name,
+            [
+                len(issues_opened),
+                len(issues_closes),
+                len(pulls_opened),
+                len(pulls_closes),
+                len(pulls_merged),
+                len(comments),
+                len(commits),
+                len(releases),
+                len(contributors),
+            ],
+        )
 
     def _expand_wildcard_selectors(self, selectors):
         if not True in ['*' in s for s in selectors]:
@@ -115,7 +126,9 @@ class MetricsReporter(object):
         expanded_selectors = []
         for selector in selectors:
             if selector == 'user:*':
-                expanded_selectors.extend([f'user:{u}' for u in self._repo.contributors])
+                expanded_selectors.extend(
+                    [f'user:{u}' for u in self._repo.contributors]
+                )
             elif selector == 'label:*':
                 expanded_selectors.extend([f'label:{l}' for l in self._repo.labels])
             else:
@@ -130,7 +143,9 @@ class MetricsReporter(object):
             name = selector
 
         if selector[0] == '!':
-            f = ComplementFilter(self._get_filter_from_selector(selector[1:], level + 1))
+            f = ComplementFilter(
+                self._get_filter_from_selector(selector[1:], level + 1)
+            )
         elif selector == 'all':
             f = NullFilter()
         elif selector.startswith('team:'):
@@ -176,7 +191,6 @@ class MetricsFormatter(object):
 
 
 class JsonMetricsFormatter(MetricsFormatter):
-
     def write(self, metrics, output):
         if isinstance(metrics, list):
             d = [self._get_dict_for_period(m) for m in metrics]
@@ -188,10 +202,10 @@ class JsonMetricsFormatter(MetricsFormatter):
         d = {
             'period': {
                 'to': metrics.end_date.strftime('%Y-%m-%d'),
-                'from': metrics.start_date.strftime('%Y-%m-%d')
-                },
-            'contributions': []
-            }
+                'from': metrics.start_date.strftime('%Y-%m-%d'),
+            },
+            'contributions': [],
+        }
 
         for report in metrics.contributions:
             c = {
@@ -200,25 +214,24 @@ class JsonMetricsFormatter(MetricsFormatter):
                     'contributors': report.contributors,
                     'issues': {
                         'opened': report.issues_opened,
-                        'closed': report.issues_closed
-                        },
+                        'closed': report.issues_closed,
+                    },
                     'pull_requests': {
                         'opened': report.pull_requests_opened,
                         'closed': report.pull_requests_closed,
-                        'merged': report.pull_requests_merged
-                        },
+                        'merged': report.pull_requests_merged,
+                    },
                     'comments': report.comments,
                     'commits': report.commits,
-                    'releases': report.releases
-                    }
-                }
+                    'releases': report.releases,
+                },
+            }
             d['contributions'].append(c)
 
         return d
 
 
 class MarkdownMetricsFormatter(MetricsFormatter):
-
     def write(self, reportset, output):
         if isinstance(reportset, list):
             for r in reportset:
@@ -263,8 +276,8 @@ class MarkdownMetricsFormatter(MetricsFormatter):
             "Pull requests merged",
             "Comments",
             "Commits",
-            "Releases"
-            ]
+            "Releases",
+        ]
 
         for item in items:
             self._write_line(item, reportset.contributions, output, with_total)
@@ -293,16 +306,24 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
 
 class CsvMetricsFormatter(MetricsFormatter):
-
     def __init__(self, sep=','):
         self._sep = sep
 
     def write(self, reportset, output):
-        headers = ['Date', 'Selector', 'Selector name',
-                   'Issues opened', 'Issues closed',
-                   'Pull requests opened', 'Pull requests closed',
-                   'Pull requests merged', 'Comments', 'Commits',
-                   'Releases', 'Contributors']
+        headers = [
+            'Date',
+            'Selector',
+            'Selector name',
+            'Issues opened',
+            'Issues closed',
+            'Pull requests opened',
+            'Pull requests closed',
+            'Pull requests merged',
+            'Comments',
+            'Commits',
+            'Releases',
+            'Contributors',
+        ]
         output.write(self._sep.join(headers))
         output.write('\n')
 
@@ -314,12 +335,20 @@ class CsvMetricsFormatter(MetricsFormatter):
 
     def _write_reportset(self, reportset, output):
         for report in reportset.contributions:
-            values = [reportset.end_date.strftime('%Y-%m-%d'),
-                      report.selector, report.name,
-                      report.issues_opened, report.issues_closed,
-                      report.pull_requests_opened, report.pull_requests_closed,
-                      report.pull_requests_merged, report.comments,
-                      report.commits, report.releases, report.contributors]
+            values = [
+                reportset.end_date.strftime('%Y-%m-%d'),
+                report.selector,
+                report.name,
+                report.issues_opened,
+                report.issues_closed,
+                report.pull_requests_opened,
+                report.pull_requests_closed,
+                report.pull_requests_merged,
+                report.comments,
+                report.commits,
+                report.releases,
+                report.contributors,
+            ]
             output.write(self._sep.join([str(v) for v in values]))
             output.write('\n')
 
@@ -407,7 +436,6 @@ class _Report(object):
 
 
 class ItemFilter(object):
-
     def filterIssue(self, issue):
         return self._filterItem(issue)
 
@@ -432,7 +460,6 @@ class ItemFilter(object):
 
 
 class NullFilter(ItemFilter):
-
     def _filterItem(self, _):
         return True
 
@@ -441,7 +468,6 @@ class NullFilter(ItemFilter):
 
 
 class DateRangeFilter(ItemFilter):
-
     def __init__(self, start, end):
         self._start = start
         self._end = end
@@ -454,7 +480,6 @@ class DateRangeFilter(ItemFilter):
 
 
 class TeamFilter(ItemFilter):
-
     def __init__(self, team_name, members):
         self._members = members
         self._slug = team_name
@@ -466,7 +491,8 @@ class TeamFilter(ItemFilter):
         return issue.user.login in self._members
 
     def filterEvent(self, event):
-        return event.actor.login in self._members
+        return event.issue.user.login in self._members
+        # return event.actor.login in self._members
 
     def filterComment(self, comment):
         return comment.user.login in self._members
@@ -482,7 +508,6 @@ class TeamFilter(ItemFilter):
 
 
 class UserFilter(TeamFilter):
-
     def __init__(self, user_name):
         TeamFilter.__init__(self, None, [user_name])
 
@@ -491,7 +516,6 @@ class UserFilter(TeamFilter):
 
 
 class LabelFilter(ItemFilter):
-
     def __init__(self, label):
         self._label = label
 
@@ -506,7 +530,6 @@ class LabelFilter(ItemFilter):
 
 
 class ComplementFilter(ItemFilter):
-
     def __init__(self, inner_filter):
         self._filter = inner_filter
 
@@ -530,7 +553,6 @@ class ComplementFilter(ItemFilter):
 
 
 class CombinedFilter(ItemFilter):
-
     def __init__(self, name, filters):
         self._name = name
         self._filters = filters
@@ -557,4 +579,3 @@ class CombinedFilter(ItemFilter):
 
     def filterRelease(self, release):
         return not False in [f.filterRelease(release) for f in self._filters]
-

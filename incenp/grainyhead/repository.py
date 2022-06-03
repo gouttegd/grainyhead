@@ -18,7 +18,6 @@ from .providers import MemoryRepositoryProvider
 
 
 class Repository(object):
-
     def __init__(self, api, backend):
         self._api = api
         self._provider = MemoryRepositoryProvider(backend)
