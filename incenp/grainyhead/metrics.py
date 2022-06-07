@@ -166,7 +166,7 @@ class MetricsReporter(object):
             f = NullFilter()
 
         if level == 0:
-            return CombinedFilter(name, [self._date_filter, f])
+            return NamedFilter(name, [self._date_filter, f])
         else:
             return f
 
@@ -553,29 +553,65 @@ class ComplementFilter(ItemFilter):
 
 
 class CombinedFilter(ItemFilter):
-    def __init__(self, name, filters):
-        self._name = name
+    def __init__(self, filters, operator):
         self._filters = filters
+        self._op = operator
 
     def __str__(self):
-        components = [str(f) for f in self._filters if not str(f).startswith('date:')]
-        return ' & '.join(components)
+        return f' {self._op} '.join([str(f) for f in self._filters])
+
+    def filterIssue(self, issue):
+        return self._apply([f.filterIssue(issue) for f in self._filters])
+
+    def filterEvent(self, event):
+        return self._apply([f.filterEvent(event) for f in self._filters])
+
+    def filterComment(self, comment):
+        return self._apply([f.filterComment(comment) for f in self._filters])
+
+    def filterCommit(self, commit):
+        return self._apply([f.filterCommit(commit) for f in self._filters])
+
+    def filterRelease(self, release):
+        return self._apply([f.filterRelease(release) for f in self._filters])
+
+    def _apply(self, _):
+        pass
+
+
+class IntersectionFilter(CombinedFilter):
+    def __init__(self, filters):
+        CombinedFilter.__init__(self, filters, '&')
+
+    def _apply(self, results):
+        return not False in results
+
+
+class UnionFilter(CombinedFilter):
+    def __init__(self, filters):
+        CombinedFilter.__init__(self, filters, '|')
+
+    def _apply(self, results):
+        return True in results
+
+
+class DifferenceFilter(CombinedFilter):
+    def __init__(self, filters):
+        CombinedFilter.__init__(self, filters, '^')
+
+    def _apply(self, results):
+        return len([r for r in results if r == True]) == 1
+
+
+class NamedFilter(IntersectionFilter):
+    def __init__(self, name, filters):
+        IntersectionFilter.__init__(self, filters)
+        self._name = name
 
     @property
     def name(self):
         return self._name
 
-    def filterIssue(self, issue):
-        return not False in [f.filterIssue(issue) for f in self._filters]
-
-    def filterEvent(self, event):
-        return not False in [f.filterEvent(event) for f in self._filters]
-
-    def filterComment(self, comment):
-        return not False in [f.filterComment(comment) for f in self._filters]
-
-    def filterCommit(self, commit):
-        return not False in [f.filterCommit(commit) for f in self._filters]
-
-    def filterRelease(self, release):
-        return not False in [f.filterRelease(release) for f in self._filters]
+    def __str__(self):
+        components = [str(f) for f in self._filters if not str(f).startswith('date:')]
+        return ' & '.join(components)
