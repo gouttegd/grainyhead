@@ -394,7 +394,7 @@ def refresh(grh):
 
 
 try:
-    from IPython import embed
+    from IPython import start_ipython
 
     @grh.command(name='ipython')
     @click.pass_obj
@@ -406,9 +406,7 @@ try:
         intended for testing purposes.
         """
 
-        api = grh.repository._api
-        repo = grh.repository
-        embed()
+        start_ipython(argv=[], user_ns={'api': grh.repository._api, 'repo': grh.repository})
 
 except ImportError:
     pass
