@@ -1,3 +1,4 @@
 click-shell >=2.1
 ghapi
 python-dateutil
+pyparsing >= 3.0.0

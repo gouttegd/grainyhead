@@ -17,6 +17,8 @@
 import json
 from datetime import timedelta
 
+import pyparsing as pp
+
 
 class MetricsReporter(object):
     """Generate metrics about events in a repository."""
@@ -28,6 +30,7 @@ class MetricsReporter(object):
         """
 
         self._repo = repository
+        self._selector_parser = None
 
     def get_report(self, selectors, start, end, period=None):
         selectors = self._expand_wildcard_selectors(selectors)
@@ -136,39 +139,55 @@ class MetricsReporter(object):
 
         return expanded_selectors
 
-    def _get_filter_from_selector(self, selector, level=0):
-        if ' AS ' in selector:
-            selector, name = selector.split(' AS ')
-        else:
-            name = selector
+    def _get_filter_from_selector(self, selector):
+        return self._get_parser().parse_string(selector).as_list()[0]
 
-        if selector[0] == '!':
-            f = ComplementFilter(
-                self._get_filter_from_selector(selector[1:], level + 1)
+    def _get_parser(self):
+        if self._selector_parser is None:
+            filter_value = pp.Word(pp.alphas, pp.alphanums + '-')
+            team_filter = (
+                (pp.Literal('team:') + filter_value)
+                .set_parse_action(
+                    lambda t: TeamFilter(
+                        t[1], [m.login for m in self._repo.get_team(t[1])]
+                    )
+                )
+                .leave_whitespace()
             )
-        elif selector == 'all':
-            f = NullFilter()
-        elif selector.startswith('team:'):
-            team_slug = selector[5:]
-            members = [m.login for m in self._repo.get_team(team_slug)]
-            f = TeamFilter(team_slug, members)
-        elif selector.startswith('user:'):
-            user_name = selector[5:]
-            f = UserFilter(user_name)
-            if selector == name:
-                name = f'@{user_name}'
-        elif selector.startswith('label:'):
-            label = selector[6:]
-            f = LabelFilter(label)
-            if selector == name:
-                name = label
-        else:
-            f = NullFilter()
+            user_filter = (
+                (pp.Literal('user:') + filter_value)
+                .set_parse_action(lambda t: UserFilter(t[1]))
+                .leave_whitespace()
+            )
+            label_filter = (
+                (pp.Literal('label:') + filter_value)
+                .set_parse_action(lambda t: LabelFilter(t[1]))
+                .leave_whitespace()
+            )
+            all_filter = pp.Literal('all').set_parse_action(lambda _: NullFilter())
+            filter_item = all_filter | team_filter | user_filter | label_filter
 
-        if level == 0:
-            return NamedFilter(name, [self._date_filter, f])
+            complement_filter = (
+                (pp.Literal("!") + filter_item)
+                .set_parse_action(lambda t: ComplementFilter(t[1]))
+                .leave_whitespace()
+            )
+
+            expression = filter_item | complement_filter
+            selector = (
+                expression
+                + (pp.Literal('AS').suppress() + pp.Word(pp.alphas))[0, 1]
+                + pp.StringEnd()
+            ).set_parse_action(self._selector_action)
+            self._selector_parser = selector
+        return self._selector_parser
+
+    def _selector_action(self, tokens):
+        if len(tokens) == 2:
+            name = tokens[1]
         else:
-            return f
+            name = tokens[0].name
+        return NamedFilter(name, [self._date_filter, tokens[0]])
 
 
 class MetricsFormatter(object):
