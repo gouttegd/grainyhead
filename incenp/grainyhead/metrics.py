@@ -128,12 +128,20 @@ class MetricsReporter(object):
 
         expanded_selectors = []
         for selector in selectors:
-            if selector == 'user:*':
+            if 'user:*' in selector:
                 expanded_selectors.extend(
-                    [f'user:{u}' for u in self._repo.contributors]
+                    [
+                        selector.replace('user:*', f'user:{u}')
+                        for u in self._repo.contributors
+                    ]
                 )
-            elif selector == 'label:*':
-                expanded_selectors.extend([f'label:{l}' for l in self._repo.labels])
+            elif 'label:*' in selector:
+                expanded_selectors.extend(
+                    [
+                        selector.replace('label:*', f'label:{l}')
+                        for l in self._repo.labels
+                    ]
+                )
             else:
                 expanded_selectors.append(selector)
 
