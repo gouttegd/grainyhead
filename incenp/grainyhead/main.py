@@ -351,9 +351,9 @@ def metrics(grh, start, end, team, selector, fmt, period):
     reporter = MetricsReporter(grh.repository)
     if len(selector) == 0:
         selector = [
-            'all AS Total',
-            f'team:{team} AS Internal',
-            f'!team:{team} AS External',
+            'all = Total',
+            f'team:{team} = Internal',
+            f'!team:{team} = External',
         ]
 
     try:
