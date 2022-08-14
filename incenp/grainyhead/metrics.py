@@ -178,13 +178,21 @@ class MetricsReporter(object):
             all_filter = pp.Literal('all').set_parse_action(lambda _: NullFilter())
             filter_item = all_filter | team_filter | user_filter | label_filter
 
+            expression = pp.Forward()
             complement_filter = (
-                (pp.Literal("!") + filter_item)
+                (pp.Literal("!") + expression)
                 .set_parse_action(lambda t: ComplementFilter(t[1]))
                 .leave_whitespace()
             )
+            atom = (
+                filter_item
+                | complement_filter
+                | (pp.Literal('(').suppress() + expression + pp.Literal(')').suppress())
+            )
+            operator = pp.one_of(['&', '|', '^'])
+            expression <<= (atom + operator + pp.White().suppress())[0, 1] + atom
+            expression.set_parse_action(self._expression_action)
 
-            expression = filter_item | complement_filter
             selector = (
                 expression
                 + (
@@ -201,6 +209,20 @@ class MetricsReporter(object):
         else:
             name = tokens[0].name
         return NamedFilter(name, [self._date_filter, tokens[0]])
+
+    def _expression_action(self, tokens):
+        if len(tokens) == 3:
+            if tokens[1] == '&':
+                return IntersectionFilter([tokens[0], tokens[2]])
+            elif tokens[1] == '|':
+                return UnionFilter([tokens[0], tokens[2]])
+            elif tokens[1] == '^':
+                return DifferenceFilter([tokens[0], tokens[2]])
+            else:
+                # should not happen
+                return NullFilter()
+        else:
+            return tokens[0]
 
 
 class MetricsFormatter(object):
