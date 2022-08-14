@@ -152,7 +152,10 @@ class MetricsReporter(object):
 
     def _get_parser(self):
         if self._selector_parser is None:
-            filter_value = pp.Word(pp.alphas, pp.alphanums + '-')
+            filter_value = pp.Combine(
+                pp.Word(pp.alphas, pp.alphanums + '-_')
+                + (pp.White() + pp.Word(pp.alphanums + '-_'))[...]
+            ).leaveWhitespace()
             team_filter = (
                 (pp.Literal('team:') + filter_value)
                 .set_parse_action(
@@ -184,7 +187,9 @@ class MetricsReporter(object):
             expression = filter_item | complement_filter
             selector = (
                 expression
-                + (pp.Literal('AS').suppress() + pp.Word(pp.alphas))[0, 1]
+                + (
+                    (pp.Literal('AS') | pp.Literal('=')).suppress() + pp.Word(pp.alphas)
+                )[0, 1]
                 + pp.StringEnd()
             ).set_parse_action(self._selector_action)
             self._selector_parser = selector
