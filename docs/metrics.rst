@@ -85,15 +85,58 @@ The following selectors can be used:
 ``label:NAME``
     All events about issues or pull requests tagged with the *NAME* label.
     
-The meaning of a selector can be inverted by prepending a ``!`` character. For
-example, ``--selector !team:elite`` would collect all events originating from
-users that are *not* members of the *elite* team.
+Note that the *NAME* value may contain spaces (as team names and labels can
+contain spaces).
+
+Selectors can be combined using the binary operators ``&``, ``|``, and ``^``:
+
+``left & right``
+	All events matching both the *left* and *right* selectors.
+
+``left | right``
+	All events matching either the *left* selector, the *right* selector, or
+	both of them.
+
+``left ^ right``
+	All events matching one of the two selectors but not the other.
+
+Parentheses can be used to group selectors and create more complex expressions:
+
+``(A & B) | C``
+	All events matching either the *A* and *B* selectors together, or the *C*
+	selector, or all three of them.
+
+``A ^ (B | C)``
+	All events matching either the *A* selector, or (exclusive) the *B* or *C*
+	selectors.
+
+The unary operator ``!`` allows to invert the meaning of any selector (including
+complex expressions) it is prepended to:
+
+``!team:elite``
+	All events originating from users that are *not* members of the *elite*
+	team.
+
+``!A & B``
+    The complement of *A & B*, that is all the events that do not match *A* and
+    *B* simultaneously.
+
+Be careful that the ``!`` operator has a greater precedence than the binary
+operators. As a result, the last example does *not* mean “all the events that do
+not match *A* but that do match *B*! If this what you want, you need instead the
+following expression: ``(!A) & B``.
+
+Not all possible expressions do necessarily make sense. For example, ``user:A &
+user:B`` (which theoretically means “all events originating from user *A* and
+user *B*) would not match any event at all, since events in GitHub have only one
+creator.
 
 The ``--selector`` option can be repeated as many times as needed to collect
 metrics about different sets of events.
 
 Each selector can be given a human-readable *NAME* to be displayed in the column
-header, by appending ``AS NAME`` to the selector.
+header, by appending ``= NAME`` (or alternatively, ``AS name``, but that form is
+deprecated and should not be used anymore) to the selector.
 
 The ``user`` and ``label`` selectors accept a special syntactic sugar:
 ``user:*`` and ``label:*`` will collect events for all contributors and for all
@@ -102,17 +145,18 @@ equivalent for ``--selector user:user1 --selector user:user2 ...``, for all
 users *user1*, *user2*, ..., known to have contributed to the repository;
 likewise, ``--selector 'label:*'`` is equivalent to ``--selector label:label1
 --selector label:label2 ...`` for all labels *label1*, *label2*, ..., ever used
-in the repository. This syntax is not compatible with the ``!`` and ``AS NAME``
-constructions.
+in the repository. Of note, only one wild-card selector may be used in any given
+expression: it is not possible to use both ``user:*`` and ``label:*`` inside the
+same selector option.
 
 Here is an example of a custom report request:
 
 .. code-block:: console
 
    $ grh metrics \
-       --selector 'all AS Total' \
-       --selector '!team:elite AS Others' \
-       --selector 'label:bugfix AS Bugs'
+       --selector 'all = Total' \
+       --selector '!team:elite = Others' \
+       --selector 'label:bugfix = Bugs'
    From 2021-11-09 to 2022-05-08
    
    | Event                | Total    | Others   | Othe (%) | Bugs     | Bugs (%) |
@@ -148,16 +192,16 @@ table where the first column indicates the events reported and the following
 columns contain the number of said events for each selector specified.
 
 The title of each column beyond the first one is either the selector itself, or
-the human-readable name specified with the ``AS NAME`` syntax (as explained in
+the human-readable name specified with the ``= NAME`` syntax (as explained in
 the previous section), if any. In any case, the title is truncated to 8
 characters.
 
-Here is an example of the effect of the ``AS NAME`` syntax:
+Here is an example of the effect of the ``= NAME`` syntax:
 
 .. code-block:: console
 
    $ grh metrics \
-       --selector '!team:elite AS Others' \
+       --selector '!team:elite = Others' \
        --selector 'label:bugfix'
    From 2021-11-09 to 2022-05-08
    
@@ -180,8 +224,8 @@ events corresponding to the selector relatively to all events:
 .. code-block:: console
 
    $ grh metrics \
-       --selector 'all AS Total' \
-       --selector '!team:elite AS Others'
+       --selector 'all = Total' \
+       --selector '!team:elite = Others'
    From 2021-11-09 to 2022-05-08
    
    | Event                | Total    | Others   | Othe (%) |
@@ -262,7 +306,7 @@ The resulting table contains 12 columns, the first three being:
     
 ``Selector name``
     The human-readable version of the selector name (if no such name has been
-    specified with the ``AS NAME`` syntax, this column contains the same value
+    specified with the ``= NAME`` syntax, this column contains the same value
     as the second column, that is the selector itself).
 
 The remaining columns are for the reported values. Their names should be
@@ -273,9 +317,9 @@ Here is an example of CSV output:
 .. code-block:: console
 
    $ grh metrics --format csv \
-       --selector 'all AS Total' \
-       --selector '!team:elite AS Others' \
-       --selector 'label:bugfix AS Bugs'
+       --selector 'all = Total' \
+       --selector '!team:elite = Others' \
+       --selector 'label:bugfix = Bugs'
    Date,Selector,Selector name,Issues opened,Issues closed,Pull requests opened,Pull requests closed,Pull requests merged,Comments,Commits,Releases,Contributors
    2022-05-08,all,Total,184,134,200,164,139,1085,485,5,46
    2022-05-08,!team:elite,Others,116,133,193,164,139,938,475,5,20
