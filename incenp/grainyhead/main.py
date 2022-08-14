@@ -24,6 +24,7 @@ import os
 import click
 from click_shell import shell
 from ghapi.core import GhApi
+from pyparsing import ParseException
 
 from . import __version__
 from .repository import Repository
@@ -355,7 +356,12 @@ def metrics(grh, start, end, team, selector, fmt, period):
             f'!team:{team} AS External',
         ]
 
-    metrics = reporter.get_report(selector, start, end, period)
+    try:
+        metrics = reporter.get_report(selector, start, end, period)
+    except ParseException as err:
+        print(f"Invalid selector: {err.line}")
+        print(f"Column {err.column:<9}: " + " " * (err.column - 1) + "^")
+        return
 
     formatter = MetricsFormatter.get_formatter(fmt)
     formatter.write(metrics, sys.stdout)
@@ -406,7 +412,9 @@ try:
         intended for testing purposes.
         """
 
-        start_ipython(argv=[], user_ns={'api': grh.repository._api, 'repo': grh.repository})
+        start_ipython(
+            argv=[], user_ns={'api': grh.repository._api, 'repo': grh.repository}
+        )
 
 except ImportError:
     pass
