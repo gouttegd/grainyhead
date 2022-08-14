@@ -153,7 +153,7 @@ class MetricsReporter(object):
     def _get_parser(self):
         if self._selector_parser is None:
             filter_value = pp.Combine(
-                pp.Word(pp.alphas, pp.alphanums + '-_')
+                pp.Word(pp.alphanums + '-_')
                 + (pp.White() + pp.Word(pp.alphanums + '-_'))[...]
             ).leaveWhitespace()
             team_filter = (
