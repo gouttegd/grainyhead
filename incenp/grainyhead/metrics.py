@@ -541,6 +541,10 @@ class TeamFilter(ItemFilter):
     def __str__(self):
         return f'team:{self._slug}'
 
+    @property
+    def name(self):
+        return self._slug
+
     def filterIssue(self, issue):
         return issue.user.login in self._members
 
@@ -568,6 +572,10 @@ class UserFilter(TeamFilter):
     def __str__(self):
         return f'user:{self._members[0]}'
 
+    @property
+    def name(self):
+        return f'@{self._members[0]}'
+
 
 class LabelFilter(ItemFilter):
     def __init__(self, label):
@@ -575,6 +583,10 @@ class LabelFilter(ItemFilter):
 
     def __str__(self):
         return f'label:{self._label}'
+
+    @property
+    def name(self):
+        return self._label
 
     def filterIssue(self, issue):
         return self._label in [l.name for l in issue.labels]
@@ -589,6 +601,10 @@ class ComplementFilter(ItemFilter):
 
     def __str__(self):
         return f'!{str(self._filter)}'
+
+    @property
+    def name(self):
+        return f'!{self._filter.name}'
 
     def filterIssue(self, issue):
         return not self._filter.filterIssue(issue)
@@ -613,6 +629,10 @@ class CombinedFilter(ItemFilter):
 
     def __str__(self):
         return f' {self._op} '.join([str(f) for f in self._filters])
+
+    @property
+    def name(self):
+        return f' {self._op } '.join([f.name for f in self._filters])
 
     def filterIssue(self, issue):
         return self._apply([f.filterIssue(issue) for f in self._filters])
