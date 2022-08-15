@@ -549,8 +549,7 @@ class TeamFilter(ItemFilter):
         return issue.user.login in self._members
 
     def filterEvent(self, event):
-        return event.issue.user.login in self._members
-        # return event.actor.login in self._members
+        return event.actor.login in self._members
 
     def filterComment(self, comment):
         return comment.user.login in self._members
