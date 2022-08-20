@@ -69,6 +69,9 @@ class RepositoryItem(AttrDict):
 
         return self._filter_time(self.update_time, after, before)
 
+    def __hash__(self):
+        return self.id
+
 
 class IssueItem(RepositoryItem):
     """A GitHub issue.
@@ -96,6 +99,9 @@ class CommitItem(RepositoryItem):
     @property
     def creation_time(self):
         return datetime.strptime(self.commit.author.date, GITHUB_DATE_FORMAT)
+
+    def __hash__(self):
+        return self.sha.__hash__()
 
 
 class RepositoryProvider(object):
