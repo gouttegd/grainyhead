@@ -395,8 +395,37 @@ def conf(grh):
             grh.config.write(f)
 
 
-def refresh(grh):
-    pass
+@grh.command()
+@click.option(
+    '--cache-stats',
+    is_flag=True,
+    default=False,
+    help="Show stats about the local cache.",
+)
+@click.pass_obj
+def debug(grh, cache_stats):
+    """Print various informations for debugging."""
+
+    if cache_stats:
+        grh.cache_policy = CachePolicy.NO_REFRESH
+        for item in [
+            'issues',
+            'all_issues',
+            'pull_requests',
+            'all_pull_requests',
+            'comments',
+            'events',
+            'commits',
+            'releases',
+            'labels',
+        ]:
+            items = getattr(grh.repository, item)
+            n = len(items)
+            n_unique = len(set(items))
+            if n_unique != n:
+                print(f"{item}: {n} (unique: {n_unique})")
+            else:
+                print(f"{item}: {n}")
 
 
 try:
