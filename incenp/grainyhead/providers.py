@@ -69,6 +69,18 @@ class RepositoryItem(AttrDict):
 
         return self._filter_time(self.update_time, after, before)
 
+    @property
+    def user_name(self):
+        """The name of the user who created this item."""
+
+        return self.user.login
+
+    @property
+    def label_strings(self):
+        """The labels associated with this item, if any."""
+
+        return []
+
     def __hash__(self):
         return self.id
 
@@ -92,6 +104,22 @@ class IssueItem(RepositoryItem):
             return False
         return self._filter_time(self.close_time, after, before)
 
+    @property
+    def label_strings(self):
+        return [l.name for l in self.labels]
+
+
+class EventItem(RepositoryItem):
+    """An event on an issue or a pull request."""
+
+    @property
+    def user_name(self):
+        return self.actor.login
+
+    @property
+    def label_strings(self):
+        return [l.name for l in self.issue.labels]
+
 
 class CommitItem(RepositoryItem):
     """A git commit."""
@@ -100,8 +128,23 @@ class CommitItem(RepositoryItem):
     def creation_time(self):
         return datetime.strptime(self.commit.author.date, GITHUB_DATE_FORMAT)
 
+    @property
+    def user_name(self):
+        if self.author is not None:
+            return self.author.login
+        else:
+            return self.commit.author.name
+
     def __hash__(self):
         return self.sha.__hash__()
+
+
+class ReleaseItem(RepositoryItem):
+    """A formal release."""
+
+    @property
+    def user_name(self):
+        return self.author.login
 
 
 class RepositoryProvider(object):
@@ -271,8 +314,8 @@ class MemoryRepositoryProvider(RepositoryProvider):
         RepositoryItemType.ISSUES: IssueItem,
         RepositoryItemType.COMMITS: CommitItem,
         RepositoryItemType.COMMENTS: RepositoryItem,
-        RepositoryItemType.EVENTS: RepositoryItem,
-        RepositoryItemType.RELEASES: RepositoryItem,
+        RepositoryItemType.EVENTS: EventItem,
+        RepositoryItemType.RELEASES: ReleaseItem,
     }
 
     def __init__(self, backend):

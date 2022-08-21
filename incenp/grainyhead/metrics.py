@@ -67,36 +67,36 @@ class MetricsReporter(object):
     def get_single_report(self, item_filter):
         """Get a single report object based on the given filter."""
 
-        issues_opened = [i for i in self._repo.all_issues if item_filter.filterIssue(i)]
+        issues_opened = [i for i in self._repo.all_issues if item_filter.filter(i)]
         issues_closes = [
             e
             for e in self._repo.events
             if e.event == 'closed'
             and not hasattr(e.issue, 'pull_request')
-            and item_filter.filterEvent(e)
+            and item_filter.filter(e)
         ]
 
         pulls_opened = [
-            p for p in self._repo.all_pull_requests if item_filter.filterIssue(p)
+            p for p in self._repo.all_pull_requests if item_filter.filter(p)
         ]
         pulls_closes = [
             e
             for e in self._repo.events
             if e.event == 'closed'
             and hasattr(e.issue, 'pull_request')
-            and item_filter.filterEvent(e)
+            and item_filter.filter(e)
         ]
         pulls_merged = [
             e
             for e in self._repo.events
-            if e.event == 'merged' and item_filter.filterEvent(e)
+            if e.event == 'merged' and item_filter.filter(e)
         ]
 
-        comments = [c for c in self._repo.comments if item_filter.filterComment(c)]
+        comments = [c for c in self._repo.comments if item_filter.filter(c)]
 
-        commits = [c for c in self._repo.commits if item_filter.filterCommit(c)]
+        commits = [c for c in self._repo.commits if item_filter.filter(c)]
 
-        releases = [r for r in self._repo.releases if item_filter.filterRelease(r)]
+        releases = [r for r in self._repo.releases if item_filter.filter(r)]
 
         contributors = []
         contributors.extend([i.user.login for i in issues_opened])
@@ -490,22 +490,7 @@ class _Report(object):
 
 
 class ItemFilter(object):
-    def filterIssue(self, issue):
-        return self._filterItem(issue)
-
-    def filterEvent(self, event):
-        return self._filterItem(event)
-
-    def filterComment(self, comment):
-        return self._filterItem(comment)
-
-    def filterCommit(self, commit):
-        return self._filterItem(commit)
-
-    def filterRelease(self, release):
-        return self._filterItem(release)
-
-    def _filterItem(self, _):
+    def filter(self, _):
         return False
 
     @property
@@ -514,7 +499,7 @@ class ItemFilter(object):
 
 
 class NullFilter(ItemFilter):
-    def _filterItem(self, _):
+    def filter(self, _):
         return True
 
     def __str__(self):
@@ -529,7 +514,7 @@ class DateRangeFilter(ItemFilter):
     def __str__(self):
         return f'date:{self._start:%Y-%m-%d}..{self._end:%Y-%m-%d}'
 
-    def _filterItem(self, item):
+    def filter(self, item):
         return item.created(after=self._start, before=self._end)
 
 
@@ -545,23 +530,8 @@ class TeamFilter(ItemFilter):
     def name(self):
         return self._slug
 
-    def filterIssue(self, issue):
-        return issue.user.login in self._members
-
-    def filterEvent(self, event):
-        return event.actor.login in self._members
-
-    def filterComment(self, comment):
-        return comment.user.login in self._members
-
-    def filterCommit(self, commit):
-        if commit.author is not None:
-            return commit.author.login in self._members
-        else:
-            return False
-
-    def filterRelease(self, release):
-        return release.author.login in self._members
+    def filter(self, item):
+        return item.user_name in self._members
 
 
 class UserFilter(TeamFilter):
@@ -587,11 +557,8 @@ class LabelFilter(ItemFilter):
     def name(self):
         return self._label
 
-    def filterIssue(self, issue):
-        return self._label in [l.name for l in issue.labels]
-
-    def filterEvent(self, event):
-        return self._label in [l.name for l in event.issue.labels]
+    def filter(self, item):
+        return self._label in item.label_strings
 
 
 class ComplementFilter(ItemFilter):
@@ -605,20 +572,8 @@ class ComplementFilter(ItemFilter):
     def name(self):
         return f'!{self._filter.name}'
 
-    def filterIssue(self, issue):
-        return not self._filter.filterIssue(issue)
-
-    def filterEvent(self, event):
-        return not self._filter.filterEvent(event)
-
-    def filterComment(self, comment):
-        return not self._filter.filterComment(comment)
-
-    def filterCommit(self, commit):
-        return not self._filter.filterCommit(commit)
-
-    def filterRelease(self, release):
-        return not self._filter.filterRelease(release)
+    def filter(self, item):
+        return not self._filter.filter(item)
 
 
 class CombinedFilter(ItemFilter):
@@ -633,47 +588,31 @@ class CombinedFilter(ItemFilter):
     def name(self):
         return f' {self._op } '.join([f.name for f in self._filters])
 
-    def filterIssue(self, issue):
-        return self._apply([f.filterIssue(issue) for f in self._filters])
-
-    def filterEvent(self, event):
-        return self._apply([f.filterEvent(event) for f in self._filters])
-
-    def filterComment(self, comment):
-        return self._apply([f.filterComment(comment) for f in self._filters])
-
-    def filterCommit(self, commit):
-        return self._apply([f.filterCommit(commit) for f in self._filters])
-
-    def filterRelease(self, release):
-        return self._apply([f.filterRelease(release) for f in self._filters])
-
-    def _apply(self, _):
-        pass
-
 
 class IntersectionFilter(CombinedFilter):
     def __init__(self, filters):
         CombinedFilter.__init__(self, filters, '&')
 
-    def _apply(self, results):
-        return not False in results
+    def filter(self, item):
+        return not False in [f.filter(item) for f in self._filters]
 
 
 class UnionFilter(CombinedFilter):
     def __init__(self, filters):
         CombinedFilter.__init__(self, filters, '|')
 
-    def _apply(self, results):
-        return True in results
+    def filter(self, item):
+        return True in [f.filter(item) for f in self._filters]
 
 
 class DifferenceFilter(CombinedFilter):
     def __init__(self, filters):
         CombinedFilter.__init__(self, filters, '^')
 
-    def _apply(self, results):
-        return len([r for r in results if r == True]) == 1
+    def filter(self, item):
+        return (
+            len([r for r in [f.filter(item) for f in self._filters] if r == True]) == 1
+        )
 
 
 class NamedFilter(IntersectionFilter):
