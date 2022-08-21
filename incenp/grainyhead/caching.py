@@ -168,7 +168,11 @@ class FileRepositoryProvider(RepositoryProvider):
             since = None
 
         if refresh:
-            data.extend(self._backend.get_data(item_type, since))
+            new_data = self._backend.get_data(item_type, since)
+            if since is not None:
+                # Append existing data, if we asked for new data only
+                new_data.extend(data)
+            data = self._purge_duplicates(new_data, item_type)
             makedirs(self._cachedir, 0o755, True)
             with open(data_file, 'w') as f:
                 json.dump(obj2dict(data), f, indent=0)
@@ -193,3 +197,32 @@ class FileRepositoryProvider(RepositoryProvider):
         else:
             # Only get new other items
             return datetime.strptime(data[-1].created_at, GITHUB_DATE_FORMAT)
+
+    def _purge_duplicates(self, data, item_type):
+        # The data we get from GitHub sometimes contain duplicated items,
+        # for unclear reasons. That can happen even we ask for the full
+        # data in one single step. Here, we forcibly remove all duplicates.
+        if item_type == RepositoryItemType.COMMITS:
+            # Identify duplicates by SHA1 hash, then force descending
+            # chronological order
+            return sorted(
+                {c.sha: c for c in data}.values(),
+                reverse=True,
+                key=lambda c: datetime.strptime(
+                    c.commit.author.date, GITHUB_DATE_FORMAT
+                ),
+            )
+        elif item_type == RepositoryItemType.LABELS:
+            # Identify duplicates by label ID
+            return list({l.id: l for l in data}.values())
+        elif item_type == RepositoryItemType.TEAMS:
+            # Identify duplicates by team "slugs"
+            return list({t.slug: t for t in data}.values())
+        else:
+            # Identify duplicates by item ID, then force descending
+            # chronological order
+            return sorted(
+                {i.id: i for i in data}.values(),
+                reverse=True,
+                key=lambda i: datetime.strptime(i.created_at, GITHUB_DATE_FORMAT),
+            )
