@@ -1,0 +1,8 @@
+Changes in grainyhead-0.2.0 (2023-01-18)
+----------------------------------------
+
+  * Add cache control option (`--caching=...`).
+  * Purge duplicated items when refreshing the cache.
+  * Support complex selectors with binary operators (&, |, and ^) and
+    parenthesised expressions.
+  * Rename the executable to `grainyhead`.

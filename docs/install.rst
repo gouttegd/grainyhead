@@ -26,8 +26,8 @@ You may download a release tarball from the `homepage`_ or from the
 
 .. code-block:: console
 
-   $ tar zxf grainyhead-0.1.0.tar.gz
-   $ cd grainyhead-0.1.0
+   $ tar zxf grainyhead-0.2.0.tar.gz
+   $ cd grainyhead-0.2.0
 
 GrainyHead requires the following Python dependencies to work:
 
@@ -46,7 +46,7 @@ Then build a *wheel* package and install it:
 .. code-block:: console
 
    $ python setup.py bdist_wheel
-   $ python -m pip install dist/grainyhead-0.1.0-py3-none-any.whl
+   $ python -m pip install dist/grainyhead-0.2.0-py3-none-any.whl
 
 To install the current development version (tip of the master branch), you may
 either clone locally the repository and then proceed as above, or use *pip* to
@@ -67,8 +67,8 @@ running the following command:
 .. code-block:: console
 
    $ grh --version
-   grh (GrainyHead 0.1.0)
-   Copyright © 2022 Damien Goutte-Gattat
+   grh (GrainyHead 0.2.0)
+   Copyright © 2023 Damien Goutte-Gattat
 
    This program is released under the GNU General Public License.
    See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.

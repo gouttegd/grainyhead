@@ -1,2 +1,2 @@
-include AUTHORS COPYING README.md requirements.txt
+include AUTHORS COPYING NEWS README.md requirements.txt
 graft docs
