@@ -85,5 +85,5 @@ Here is a sample configuration file for GrainyHead:
    token: ghp_YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 
 With such a file, calling ``grainyheadh -s bio`` will make any subcommand work
-on the *Biopython* repository. Calling simply ``grh`` will make the subcommands
-work on the *GrainyHead* repository.
+on the *Biopython* repository. Calling simply ``grainyhead`` will make the
+subcommands work on the *GrainyHead* repository.
