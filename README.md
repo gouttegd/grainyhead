@@ -45,13 +45,13 @@ repository URL and your access token when you first invoke the program.
 
 Usage
 -----
-Invoke `grh` with the `--help` option to get the list of available
-commands. Invoke a command with that same option to get a detailled help
-message for the command.
+Invoke `grainyhead` with the `--help` option to get the list of
+available commands. Invoke a command with that same option to get a
+detailled help message for the command.
 
-If called without any command, `grh` will enter into an interactive
-shell mode, from which commands can be entered repeatedly without
-leaving the program.
+If called without any command, `grainyhead` will enter into an
+interactive shell mode, from which commands can be entered repeatedly
+without leaving the program.
 
 
 ### Listing old issues in a repository
@@ -60,7 +60,7 @@ Use the `issues` command to list open issues that have not been updated
 for a while (365 days by default):
 
 ```
-$ grh issues
+$ grainyhead issues
 ```
 
 The output is a Markdown-style table containing, for each issue, its
@@ -89,7 +89,7 @@ The `metrics` command will list some statistics about the repository
 over a given period of time:
 
 ```
-$ grh metrics
+$ grainyhead metrics
 From 2021-09-02 to 2021-12-01
 
 | Event                | Total | Internal | Inte (%) | External | Exte (%) |

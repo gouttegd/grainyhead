@@ -39,7 +39,7 @@ The following example will list issues that have not been updated in the past
 
 .. code-block:: console
 
-   grh issues --older-than 6m --team elite
+   $ grainyhead issues --older-than 6m --team elite
 
 
 .. _closing-old-issues:
@@ -71,5 +71,5 @@ updated in the past 3 years:
 
 .. code-block:: console
 
-   grh close --older-than 3y --limit 30 \
+   $ grainyhead close --older-than 3y --limit 30 \
      --comment "This issue has been closed automatically."

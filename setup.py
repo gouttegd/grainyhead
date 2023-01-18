@@ -1,5 +1,5 @@
 # grainyhead - Helper tools for GitHub
-# Copyright © 2021,2022 Damien Goutte-Gattat
+# Copyright © 2021,2022,2023 Damien Goutte-Gattat
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ setup(
     install_requires=['click_shell >= 2.1', 'ghapi', 'python-dateutil'],
     extras_require={'IPython': ['ipython']},
     packages=['incenp', 'incenp.grainyhead'],
-    entry_points={'console_scripts': ['grh = incenp.grainyhead.main:grh']},
+    entry_points={'console_scripts': ['grainyhead = incenp.grainyhead.main:grh']},
     command_options={
         'build_sphinx': {
             'project': ('setup.py', 'GrainyHead'),

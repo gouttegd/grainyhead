@@ -18,7 +18,7 @@ access token* to authenticate on GitHub:
 
 .. code-block:: console
 
-   $ grh
+   $ grainyhead
    Repository name or URL: https://github.com/gouttegd/grainyhead
    Visit https://github.com/settings/tokens to create a personal access token
    Token: <personal access token>
@@ -33,10 +33,10 @@ GrainyHead commands
 ===================
 
 Each GrainyHead command can be invoked directly from the command line (with
-``grh <command>``), in which case GrainyHead will perform the corresponding
-task then quit. Otherwise, if no command is specified, you enter into an
-interactive shell from which you can repeatedly run commands without quiting
-GrainyHead.
+``grainyhead <command>``), in which case GrainyHead will perform the
+corresponding task then quit. Otherwise, if no command is specified, you enter
+into an interactive shell from which you can repeatedly run commands without
+quitting GrainyHead.
 
 Use the ``help`` command to get the list of available commands.
 

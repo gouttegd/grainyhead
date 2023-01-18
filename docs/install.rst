@@ -61,7 +61,7 @@ Testing the installation
 ========================
 
 Once installed, GrainyHead may be invoked from the command line by calling the
-``grh`` program. You can check whether it has been installed correctly by
+``grainyhead`` program. You can check whether it has been installed correctly by
 running the following command:
 
 .. code-block:: console

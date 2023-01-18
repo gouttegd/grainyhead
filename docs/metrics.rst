@@ -45,7 +45,7 @@ Here is an example of a default report:
 
 .. code-block:: console
 
-   $ grh metrics
+   $ grainyhead metrics
    From 2021-09-02 to 2021-12-01
    
    | Event                | Total | Internal | Inte (%) | External | Exte (%) |
@@ -153,7 +153,7 @@ Here is an example of a custom report request:
 
 .. code-block:: console
 
-   $ grh metrics \
+   $ grainyhead metrics \
        --selector 'all = Total' \
        --selector '!team:elite = Others' \
        --selector 'label:bugfix = Bugs'
@@ -200,7 +200,7 @@ Here is an example of the effect of the ``= NAME`` syntax:
 
 .. code-block:: console
 
-   $ grh metrics \
+   $ grainyhead metrics \
        --selector '!team:elite = Others' \
        --selector 'label:bugfix'
    From 2021-11-09 to 2022-05-08
@@ -223,7 +223,7 @@ events corresponding to the selector relatively to all events:
 
 .. code-block:: console
 
-   $ grh metrics \
+   $ grainyhead metrics \
        --selector 'all = Total' \
        --selector '!team:elite = Others'
    From 2021-11-09 to 2022-05-08
@@ -316,7 +316,7 @@ Here is an example of CSV output:
 
 .. code-block:: console
 
-   $ grh metrics --format csv \
+   $ grainyhead metrics --format csv \
        --selector 'all = Total' \
        --selector '!team:elite = Others' \
        --selector 'label:bugfix = Bugs'
@@ -371,7 +371,7 @@ in quarterly periods:
 
 .. code-block:: console
 
-   $ grh metrics --format csv --from 1y --period 3m 
+   $ grainyhead metrics --format csv --from 1y --period 3m 
    Date,Selector,Selector name,Issues opened,Issues closed,Pull requests opened,Pull requests closed,Pull requests merged,Comments,Commits,Releases,Contributors
    2021-08-08,all,Total,90,509,88,84,62,927,200,4,26
    2021-11-08,all,Total,60,56,63,70,57,401,185,2,28
