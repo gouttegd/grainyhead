@@ -115,7 +115,7 @@ def parse_duration(value, relative=False):
     form, the function returns None.
     """
 
-    if m := re.match('^([0-9]+)([dwmy])?', value):
+    if m := re.match('^([0-9]+)([dwmy])?$', value):
         n, f = m.groups()
         if not f:
             f = 'd'
