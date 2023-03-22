@@ -1,3 +1,9 @@
+Changes in grainyhead-0.2.1 (2023-03-22)
+----------------------------------------
+
+  * Fix incorrect handling of dates in --from and --to options.
+
+
 Changes in grainyhead-0.2.0 (2023-01-18)
 ----------------------------------------
 
