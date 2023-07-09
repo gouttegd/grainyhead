@@ -39,6 +39,7 @@ class RepositoryItemType(Enum):
     EVENTS = 5
     COMMITS = 6
     RELEASES = 7
+    COMMITTERS = 8
 
 
 class RepositoryItem(AttrDict):
@@ -200,6 +201,10 @@ class RepositoryProvider(object):
     def releases(self):
         return self.get_data(RepositoryItemType.RELEASES)
 
+    @property
+    def committers(self):
+        return self.get_data(RepositoryItemType.COMMITTERS)
+
 
 class OnlineRepositoryProvider(RepositoryProvider):
     """Provides direct access to the data from a GitHub repository."""
@@ -231,9 +236,24 @@ class OnlineRepositoryProvider(RepositoryProvider):
             )
         elif item_type == RepositoryItemType.TEAMS:
             data = self._fetch_teams()
+        elif item_type == RepositoryItemType.COMMITTERS:
+            data = self._fetch_committers()
         else:
             data = self._fetch(self._calls[item_type], since=since)
         return data
+
+    def _fetch_committers(self):
+        committers = self._api.repos.list_contributors(per_page=100)
+        last_page = self._api.last_page()
+        page = 0
+
+        while page < last_page:
+            page += 1
+            committers.extend(
+                self._api.repos.list_contributors(per_page=100, page=page)
+            )
+
+        return committers
 
     def _fetch(self, apicall, apiargs={}, since=None):
         """Generic method to fetch data from GitHub."""

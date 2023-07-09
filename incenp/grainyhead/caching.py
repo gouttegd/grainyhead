@@ -191,6 +191,9 @@ class FileRepositoryProvider(RepositoryProvider):
         elif item_type in [RepositoryItemType.LABELS, RepositoryItemType.TEAMS]:
             # Always fetch everything for those
             return None
+        elif item_type == RepositoryItemType.COMMITTERS:
+            # Always fetch everything for those
+            return None
         elif item_type == RepositoryItemType.COMMITS:
             # Only get new commits
             return datetime.strptime(data[-1].commit.author.date, GITHUB_DATE_FORMAT)
@@ -218,6 +221,9 @@ class FileRepositoryProvider(RepositoryProvider):
         elif item_type == RepositoryItemType.TEAMS:
             # Identify duplicates by team "slugs"
             return list({t.slug: t for t in data}.values())
+        elif item_type == RepositoryItemType.COMMITTERS:
+            # Identify duplicates by login name
+            return list({l.login: l for l in data}.values())
         else:
             # Identify duplicates by item ID, then force descending
             # chronological order

@@ -23,6 +23,7 @@ class Repository(object):
         self._provider = MemoryRepositoryProvider(backend)
         self._labels = None
         self._teams = None
+        self._committers = None
 
     @property
     def issues(self):
@@ -65,6 +66,12 @@ class Repository(object):
     @property
     def contributors(self):
         return [m.login for m in self.get_team()]
+
+    @property
+    def committers(self):
+        if self._committers is None:
+            self._committers = [l.login for l in self._provider.committers]
+        return self._committers
 
     def get_team(self, name='__collaborators'):
         if self._teams is None:
