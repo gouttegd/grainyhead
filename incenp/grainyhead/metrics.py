@@ -314,19 +314,19 @@ class MarkdownMetricsFormatter(MetricsFormatter):
         output.write(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}\n")
         output.write("\n")
 
-        output.write("| Event                |")
+        output.write("| Event |")
         if with_total:
-            output.write(f" {reportset.contributions[0].name:8.8} |")
+            output.write(f" {reportset.contributions[0].name} |")
             for report in reportset.contributions[1:]:
-                output.write(f" {report.name:8.8} | {report.name:4.4} (%) |")
+                output.write(f" {report.name} | {report.name} (%) |")
             output.write("\n")
-            output.write("| -------------------- | -------- |")
+            output.write("| -------- | -------- |")
             for report in reportset.contributions[1:]:
                 output.write(" -------- | -------- |")
             output.write("\n")
         else:
             for report in reportset.contributions:
-                output.write(f" {report.name:8.8} |")
+                output.write(f" {report.name} |")
             output.write("\n")
             output.write("| -------------------- |")
             for report in reportset.contributions:
@@ -354,7 +354,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
         if with_total:
             total = getattr(reports[0], property_name)
-            output.write(f"| {label:20} | {total: 8} |")
+            output.write(f"| {label} | {total} |")
 
             for report in reports[1:]:
                 value = getattr(report, property_name)
@@ -362,12 +362,12 @@ class MarkdownMetricsFormatter(MetricsFormatter):
                     percent = value / total * 100
                 else:
                     percent = 0.0
-                output.write(f" {value:8} | {percent: 8.2f} |")
+                output.write(f" {value} | {percent: .2f} |")
         else:
-            output.write(f"| {label:20} |")
+            output.write(f"| {label} |")
             for report in reports:
                 value = getattr(report, property_name)
-                output.write(f" {value:8} |")
+                output.write(f" {value} |")
         output.write("\n")
 
 
