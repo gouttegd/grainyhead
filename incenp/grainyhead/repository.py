@@ -24,6 +24,7 @@ class Repository(object):
         self._labels = None
         self._teams = None
         self._committers = None
+        self._commenters = None
 
     @property
     def issues(self):
@@ -65,13 +66,25 @@ class Repository(object):
 
     @property
     def contributors(self):
-        return [m.login for m in self.get_team()]
+        return set(self.committers + self.commenters)
 
     @property
     def committers(self):
         if self._committers is None:
             self._committers = [l.login for l in self._provider.committers]
         return self._committers
+
+    @property
+    def commenters(self):
+        if self._commenters is None:
+            commenters = [i.user.login for i in self.all_issues]
+            commenters.extend([c.user.login for c in self.comments])
+            self._commenters = list(set(commenters))
+        return self._commenters
+
+    @property
+    def collaborators(self):
+        return [m.login for m in self.get_team()]
 
     def get_team(self, name='__collaborators'):
         if self._teams is None:
