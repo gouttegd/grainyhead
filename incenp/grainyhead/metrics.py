@@ -72,7 +72,11 @@ class MetricsReporter(object):
 
         for selector in selectors:
             item_filter = self._get_filter_from_selector(selector)
-            rset.contributions.append(self.get_single_report(item_filter))
+            report = self.get_single_report(item_filter)
+            if report.name.startswith('@') and report.all_contributions == 0:
+                # Exclude reports for users with no contributions at all
+                continue
+            rset.contributions.append(report)
 
         return rset
 
@@ -499,6 +503,10 @@ class _Report(object):
     @property
     def releases(self):
         return self._values[7]
+
+    @property
+    def all_contributions(self):
+        return sum(self._values)
 
 
 class NamedFilter(IntersectionFilter):
