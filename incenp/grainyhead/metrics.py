@@ -314,7 +314,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
         output.write(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}\n")
         output.write("\n")
 
-        output.write("| Event                |")
+        output.write("| Event |")
         if with_total:
             output.write(f" {reportset.contributions[0].name} |")
             for report in reportset.contributions[1:]:
