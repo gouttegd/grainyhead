@@ -145,11 +145,19 @@ class MetricsReporter(object):
         expanded_selectors = []
         for selector in selectors:
             if 'user:*' in selector:
+                user_group = selector[5:]
+                if user_group == '*':
+                    users = self._repo.contributors
+                elif user_group == '*COMMITTERS':
+                    users = self._repo.committers
+                elif user_group == '*COMMENTERS':
+                    users = self._repo.commenters
+                elif user_group == '*COLLABORATORS':
+                    users = self._repo.collaborators
+                else:
+                    users = [u.login for u in self._repo.get_team(user_group[1:])]
                 expanded_selectors.extend(
-                    [
-                        selector.replace('user:*', f'user:{u}')
-                        for u in self._repo.contributors
-                    ]
+                    [selector.replace('user:' + user_group, f'user:{u}') for u in users]
                 )
             elif 'label:*' in selector:
                 expanded_selectors.extend(
