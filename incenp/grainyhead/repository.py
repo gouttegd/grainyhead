@@ -71,14 +71,28 @@ class Repository(object):
     @property
     def committers(self):
         if self._committers is None:
-            self._committers = [l.login for l in self._provider.committers]
+            self._committers = [
+                l.login
+                for l in self._provider.committers
+                if l.login != 'github-actions[bot]'
+            ]
         return self._committers
 
     @property
     def commenters(self):
         if self._commenters is None:
-            commenters = [i.user.login for i in self.all_issues]
-            commenters.extend([c.user.login for c in self.comments])
+            commenters = [
+                i.user.login
+                for i in self.all_issues
+                if i.user.login != 'github-actions[bot]'
+            ]
+            commenters.extend(
+                [
+                    c.user.login
+                    for c in self.comments
+                    if c.user.login != 'github-actions[bot]'
+                ]
+            )
             self._commenters = list(set(commenters))
         return self._commenters
 
