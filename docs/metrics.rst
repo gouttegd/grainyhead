@@ -48,17 +48,17 @@ Here is an example of a default report:
    $ grainyhead metrics
    From 2021-09-02 to 2021-12-01
    
-   | Event                | Total | Internal | Inte (%) | External | Exte (%) |
-   | -------------------- | ----- | -------- | -------- | -------- | -------- |
-   | Contributors         |    24 |       15 |    62.50 |        9 |    37.50 |
-   | Issues opened        |    71 |       64 |    90.14 |        7 |     9.86 |
-   | Issues closed        |    89 |       77 |    86.52 |       12 |    13.48 |
-   | Pull requests opened |    86 |       68 |    79.07 |       18 |    20.93 |
-   | Pull requests closed |    94 |       78 |    82.98 |       16 |    17.02 |
-   | Pull requests merged |    79 |       65 |    82.28 |       14 |    17.72 |
-   | Comments             |   476 |      412 |    86.55 |       64 |    13.45 |
-   | Commits              |   232 |      201 |    86.64 |       31 |    13.36 |
-   | Releases             |     4 |        4 |   100.00 |        0 |     0.00 |
+   | Event | Total | Internal | Internal (%) | External | External (%) |
+   | -------- | ----- | -------- | -------- | -------- | -------- |
+   | Contributors | 24 | 15 | 62.50 | 9 | 37.50 |
+   | Issues opened | 71 | 64 | 90.14 | 7 | 9.86 |
+   | Issues closed | 89 | 77 | 86.52 | 12 | 13.48 |
+   | Pull requests opened | 86 | 68 | 79.07 | 18 | 20.93 |
+   | Pull requests closed | 94 | 78 | 82.98 | 16 | 17.02 |
+   | Pull requests merged | 79 | 65 | 82.28 | 14 | 17.72 |
+   | Comments | 476 | 412 | 86.55 | 64 | 13.45 |
+   | Commits | 232 | 201 | 86.64 | 31 | 13.36 |
+   | Releases | 4 | 4 | 100.00 | 0 | 0.00 |
 
 This report indicates, for example, that 24 users contributed to the repository
 between September 2nd, 2021 and December 1st, 2021; 15 of them (62.5%) were
@@ -138,16 +138,21 @@ Each selector can be given a human-readable *NAME* to be displayed in the column
 header, by appending ``= NAME`` (or alternatively, ``AS name``, but that form is
 deprecated and should not be used anymore) to the selector.
 
-The ``user`` and ``label`` selectors accept a special syntactic sugar:
-``user:*`` and ``label:*`` will collect events for all contributors and for all
-labels in the repository, respectively. That is, ``--selector 'user:*'`` is
-equivalent for ``--selector user:user1 --selector user:user2 ...``, for all
-users *user1*, *user2*, ..., known to have contributed to the repository;
-likewise, ``--selector 'label:*'`` is equivalent to ``--selector label:label1
---selector label:label2 ...`` for all labels *label1*, *label2*, ..., ever used
-in the repository. Of note, only one wild-card selector may be used in any given
-expression: it is not possible to use both ``user:*`` and ``label:*`` inside the
-same selector option.
+The ``user`` selector accepts a special syntactic sugar: ``user:*TEAM`` will
+collect events for all users in team *TEAM* (or for all contributors if no team
+is specified, that is if the selector is simply ``user:*``). That is,
+``--selector 'user:*elite'`` is equivalent to ``--selector user:user1
+--selector user:user2 ...`` where *user1*, *user2*, etc. are members of the
+*elite* team.
+
+The ``team`` selector similarly accepts the syntactic sugar ``team:*``, which
+will collect events for all labels in the repository. That is, ``--selector
+'label:*'`` is equivalent to ``--selector label:label` --selector label:label2
+...`` for all labels *label1*, *label2*, etc. ever used in the repository.
+
+Of note, only one wild-card selector may be used in any given expression: it is
+not possible to use both ``user:*`` (with or without a team name) and
+``label:*`` inside the same selector option.
 
 Here is an example of a custom report request:
 
@@ -159,21 +164,47 @@ Here is an example of a custom report request:
        --selector 'label:bugfix = Bugs'
    From 2021-11-09 to 2022-05-08
    
-   | Event                | Total    | Others   | Othe (%) | Bugs     | Bugs (%) |
-   | -------------------- | -------- | -------- | -------- | -------- | -------- |
-   | Contributors         |       46 |       20 |    43.48 |       44 |    95.65 |
-   | Issues opened        |      184 |      116 |    63.04 |      136 |    73.91 |
-   | Issues closed        |      134 |      133 |    99.25 |      106 |    79.10 |
-   | Pull requests opened |      200 |      193 |    96.50 |      196 |    98.00 |
-   | Pull requests closed |      164 |      164 |   100.00 |      162 |    98.78 |
-   | Pull requests merged |      139 |      139 |   100.00 |      138 |    99.28 |
-   | Comments             |     1085 |      938 |    86.45 |        0 |     0.00 |
-   | Commits              |      485 |      475 |    97.94 |        0 |     0.00 |
-   | Releases             |        5 |        5 |   100.00 |        0 |     0.00 |
+   | Event | Total | Others | Others (%) | Bugs | Bugs (%) |
+   | -------- | -------- | -------- | -------- | -------- | -------- |
+   | Contributors | 46 | 20 | 43.48 | 44 | 95.65 |
+   | Issues opened | 184 | 116 | 63.04 | 136 | 73.91 |
+   | Issues closed | 134 | 133 | 99.25 | 106 | 79.10 |
+   | Pull requests opened | 200 | 193 | 96.50 | 196 | 98.00 |
+   | Pull requests closed | 164 | 164 | 100.00 | 162 | 98.78 |
+   | Pull requests merged | 139 | 139 | 100.00 | 138 | 99.28 |
+   | Comments | 1085 | 938 | 86.45 | 0 | 0.00 |
+   | Commits | 485 | 475 | 97.94 | 0 | 0.00 |
+   | Releases | 5 | 5 | 100.00 | 0 | 0.00 |
 
 It prints the numbers of all events in the repository, the number of events
 originating from users that are not members of the *elite* team, and the number
 of events labelled with the *bugfix* label.
+
+
+Special team names
+------------------
+
+The ``team`` selector will recognise a handful of special names, all starting with
+``__``:
+
+``team:__collaborators``
+    All users that are registered as collaborators on the repository.
+    
+``team:__committers``
+    All users who ever committed to the repository.
+    
+``team:__commenters``
+    All users who ever opened a ticket or a PR or commented on a ticket or a PR.
+    
+``team:__contributors``
+    All users who ever contributed anything (commit, issue, PR, comment) to the
+    repository.
+    
+These names are also recognised by the ``user:*TEAM`` syntactic sugar. For
+example, ``--selector 'user:*__committers'`` will be equivalent to ``--selector
+user:user1 --selector user:user2 ...`` where *user1*, *user2*, etc. are users
+who contributed commits to the repository. The special ``user:*`` sugar is
+strictly equivalent to ``user:*__contributors``. 
 
 
 Report formats
@@ -205,17 +236,17 @@ Here is an example of the effect of the ``= NAME`` syntax:
        --selector 'label:bugfix'
    From 2021-11-09 to 2022-05-08
    
-   | Event                | Others   | label:bu |
-   | -------------------- | -------- | -------- |
-   | Contributors         |       20 |       44 |
-   | Issues opened        |      116 |      136 |
-   | Issues closed        |      133 |      106 |
-   | Pull requests opened |      193 |      196 |
-   | Pull requests closed |      164 |      162 |
-   | Pull requests merged |      139 |      138 |
-   | Comments             |      938 |        0 |
-   | Commits              |      475 |        0 |
-   | Releases             |        5 |        0 |
+   | Event | Others | label:bugfix |
+   | -------- | -------- | -------- |
+   | Contributors | 20 | 44 |
+   | Issues opened | 116 | 136 |
+   | Issues closed | 133 | 106 |
+   | Pull requests opened | 193 | 196 |
+   | Pull requests closed | 164 | 162 |
+   | Pull requests merged | 139 | 138 |
+   | Comments | 938 | 0 |
+   | Commits | 475 | 0 |
+   | Releases | 5 | 0 |
 
 As a convenience, if the *first* selector is the ``all`` selector, then for each
 subsequent selector, an extra column is appended to give the proportion of
@@ -228,17 +259,17 @@ events corresponding to the selector relatively to all events:
        --selector '!team:elite = Others'
    From 2021-11-09 to 2022-05-08
    
-   | Event                | Total    | Others   | Othe (%) |
-   | -------------------- | -------- | -------- | -------- |
-   | Contributors         |       46 |       20 |    43.48 |
-   | Issues opened        |      184 |      116 |    63.04 |
-   | Issues closed        |      134 |      133 |    99.25 |
-   | Pull requests opened |      200 |      193 |    96.50 |
-   | Pull requests closed |      164 |      164 |   100.00 |
-   | Pull requests merged |      139 |      139 |   100.00 |
-   | Comments             |     1085 |      938 |    86.45 |
-   | Commits              |      485 |      475 |    97.94 |
-   | Releases             |        5 |        5 |   100.00 | 
+   | Event | Total | Others | Others (%) |
+   | -------- | -------- | -------- | -------- |
+   | Contributors | 46 | 20 | 43.48 |
+   | Issues opened | 184 | 116 | 63.04 |
+   | Issues closed | 134 | 133 | 99.25 |
+   | Pull requests opened | 200 | 193 | 96.50 |
+   | Pull requests closed | 164 | 164 | 100.00 |
+   | Pull requests merged | 139 | 139 | 100.00 |
+   | Comments | 1085 | 938 | 86.45 |
+   | Commits | 485 | 475 | 97.94 |
+   | Releases | 5 | 5 | 100.00 | 
 
 
 JSON format
