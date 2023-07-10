@@ -92,17 +92,17 @@ over a given period of time:
 $ grainyhead metrics
 From 2021-09-02 to 2021-12-01
 
-| Event                | Total | Internal | Inte (%) | External | Exte (%) |
-| -------------------- | ----- | -------- | -------- | -------- | -------- |
-| Contributors         |    24 |       15 |    62.50 |        9 |    37.50 |
-| Issues opened        |    71 |       64 |    90.14 |        7 |     9.86 |
-| Issues closed        |    89 |       77 |    86.52 |       12 |    13.48 |
-| Pull requests opened |    86 |       68 |    79.07 |       18 |    20.93 |
-| Pull requests closed |    94 |       78 |    82.98 |       16 |    17.02 |
-| Pull requests merged |    79 |       65 |    82.28 |       14 |    17.72 |
-| Comments             |   476 |      412 |    86.55 |       64 |    13.45 |
-| Commits              |   232 |      201 |    86.64 |       31 |    13.36 |
-| Releases             |     4 |        4 |   100.00 |        0 |     0.00 |
+| Event | Total | Internal | Internal (%) | External | Externam (%) |
+| -------- | -------- | -------- | -------- | -------- | -------- |
+| Contributors | 24 | 15 | 62.50 | 9 | 37.50 |
+| Issues opened | 71 | 64 | 90.14 | 7 | 9.86 |
+| Issues closed | 89 | 77 | 86.52 | 12 | 13.48 |
+| Pull requests opened | 86 | 68 | 79.07 | 18 | 20.93 |
+| Pull requests closed | 94 | 78 | 82.98 | 16 | 17.02 |
+| Pull requests merged | 79 | 65 | 82.28 | 14 | 17.72 |
+| Comments | 476 | 412 | 86.55 | 64 | 13.45 |
+| Commits | 232 | 201 | 86.64 | 31 | 13.36 |
+| Releases | 4 | 4 | 100.00 | 0 | 0.00 |
 ```
 
 

@@ -1,3 +1,16 @@
+Changes in grainyhead-0.3.0 (2023-07-10)
+----------------------------------------
+
+  * Do not use fixed-width columns when producing Markdown output.
+  * The `user:*` syntactic sugar now produces reports for all users who
+    ever contributed to the repository, instead of collaborators.
+  * The `user:*` syntactic sugar is expanded to allow specifying a team
+    name, as in `user:*<team_name>`, to produce reports for all users
+    belonging to the specified team.
+  * Four “pseudo-team names” are recognized: `__contributors`,
+    `__committers`, `__commenters`, and `__collaborators`.
+
+
 Changes in grainyhead-0.2.1 (2023-03-22)
 ----------------------------------------
 

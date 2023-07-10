@@ -1,5 +1,5 @@
 # grainyhead - Helper tools for GitHub
-# Copyright © 2021 Damien Goutte-Gattat
+# Copyright © 2021,2023 Damien Goutte-Gattat
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

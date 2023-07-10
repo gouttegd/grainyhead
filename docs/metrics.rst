@@ -49,7 +49,7 @@ Here is an example of a default report:
    From 2021-09-02 to 2021-12-01
    
    | Event | Total | Internal | Internal (%) | External | External (%) |
-   | -------- | ----- | -------- | -------- | -------- | -------- |
+   | -------- | -------- | -------- | -------- | -------- | -------- |
    | Contributors | 24 | 15 | 62.50 | 9 | 37.50 |
    | Issues opened | 71 | 64 | 90.14 | 7 | 9.86 |
    | Issues closed | 89 | 77 | 86.52 | 12 | 13.48 |
