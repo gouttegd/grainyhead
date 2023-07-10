@@ -145,20 +145,15 @@ class MetricsReporter(object):
         expanded_selectors = []
         for selector in selectors:
             if 'user:*' in selector:
-                user_group = selector[5:]
-                if user_group == '*':
-                    users = self._repo.contributors
-                elif user_group == '*COMMITTERS':
-                    users = self._repo.committers
-                elif user_group == '*COMMENTERS':
-                    users = self._repo.commenters
-                elif user_group == '*COLLABORATORS':
-                    users = self._repo.collaborators
-                else:
-                    users = [u.login for u in self._repo.get_team(user_group[1:])]
+                group = selector[6:].split(' ', 2)[0]
+                real_group = group if len(group) > 0 else '__contributors'
                 expanded_selectors.extend(
-                    [selector.replace('user:' + user_group, f'user:{u}') for u in users]
+                    [
+                        selector.replace('user:*' + group, f'user:{u}')
+                        for u in self._repo.get_usernames(real_group)
+                    ]
                 )
+
             elif 'label:*' in selector:
                 expanded_selectors.extend(
                     [
@@ -182,7 +177,9 @@ class MetricsReporter(object):
             ).leaveWhitespace()
             team_filter = (
                 (pp.Literal('team:') + filter_value)
-                .set_parse_action(self._team_action)
+                .set_parse_action(
+                    lambda t: TeamFilter(t[1], self._repo.get_usernames(t[1]))
+                )
                 .leave_whitespace()
             )
             user_filter = (
@@ -243,20 +240,6 @@ class MetricsReporter(object):
                 return NullFilter()
         else:
             return tokens[0]
-
-    def _team_action(self, tokens):
-        team_name = tokens[1]
-        if team_name == '__contributors':
-            users = self._repo.contributors
-        elif team_name == '__committers':
-            users = self._repo.committers
-        elif team_name == '__commenters':
-            users = self._repo.commenters
-        elif team_name == '__collaborators':
-            users = self._repo.collaborators
-        else:
-            users = [u.login for u in self._repo.get_team(team_name)]
-        return TeamFilter(team_name, users)
 
 
 class MetricsFormatter(object):

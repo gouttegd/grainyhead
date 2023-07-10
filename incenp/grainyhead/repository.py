@@ -107,6 +107,16 @@ class Repository(object):
                 self._teams[team.slug] = team
         return self._teams[name].members
 
+    def get_usernames(self, group='__collaborators'):
+        if group == '__contributors':
+            return self.contributors
+        elif group == '__committers':
+            return self.committers
+        elif group == '__commenters':
+            return self.commenters
+        else:
+            return [u.login for u in self.get_team(group)]
+
     def create_label(self, name, color, description):
         if not name in self.labels:
             self._api.issues.create_label(name, color, description)
