@@ -1,3 +1,8 @@
+Changes in grainyhead-0.3.1 (2023-08-10)
+----------------------------------------
+
+  * Exclude all bots when listing committers and commenters (#18).
+
 Changes in grainyhead-0.3.0 (2023-07-10)
 ----------------------------------------
 
