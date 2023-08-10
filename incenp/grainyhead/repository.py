@@ -74,7 +74,7 @@ class Repository(object):
             self._committers = [
                 l.login
                 for l in self._provider.committers
-                if l.login != 'github-actions[bot]'
+                if not l.login.endswith('[bot]')
             ]
         return self._committers
 
@@ -84,13 +84,13 @@ class Repository(object):
             commenters = [
                 i.user.login
                 for i in self.all_issues
-                if i.user.login != 'github-actions[bot]'
+                if not i.user.login.endswith('[bot]')
             ]
             commenters.extend(
                 [
                     c.user.login
                     for c in self.comments
-                    if c.user.login != 'github-actions[bot]'
+                    if not c.user.login.endswith('[bot]')
                 ]
             )
             self._commenters = list(set(commenters))
