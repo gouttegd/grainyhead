@@ -20,6 +20,9 @@ from incenp.grainyhead import __version__
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
+with open('requirements.txt', 'r') as fh:
+    requirements = fh.readlines()
+
 setup(
     name='grainyhead',
     version=__version__,
@@ -35,7 +38,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Intended Audience :: Developers',
     ],
-    install_requires=['click_shell >= 2.1', 'ghapi', 'python-dateutil'],
+    install_requires=[line.strip() for line in requirements],
     extras_require={'IPython': ['ipython']},
     packages=['incenp', 'incenp.grainyhead'],
     entry_points={'console_scripts': ['grainyhead = incenp.grainyhead.main:grh']},
