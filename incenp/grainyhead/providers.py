@@ -115,7 +115,10 @@ class EventItem(RepositoryItem):
 
     @property
     def user_name(self):
-        return self.actor.login
+        if self.actor is not None:
+            return self.actor.login
+        else:
+            return None
 
     @property
     def label_strings(self):
@@ -145,7 +148,10 @@ class ReleaseItem(RepositoryItem):
 
     @property
     def user_name(self):
-        return self.author.login
+        if self.author is not None:
+            return self.author.login
+        else:
+            return None
 
 
 class RepositoryProvider(object):

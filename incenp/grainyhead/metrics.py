@@ -118,8 +118,8 @@ class MetricsReporter(object):
         contributors.extend([i.user.login for i in issues_opened])
         contributors.extend([p.user.login for p in pulls_opened])
         contributors.extend([c.user.login for c in comments])
-        contributors.extend([e.actor.login for e in issues_closes])
-        contributors.extend([e.actor.login for e in pulls_closes])
+        contributors.extend([e.actor.login for e in issues_closes if e.actor is not None])
+        contributors.extend([e.actor.login for e in pulls_closes if e.actor is not None])
         contributors = set(contributors)
 
         return _Report(
