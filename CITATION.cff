@@ -8,6 +8,6 @@ authors:
 license: GPL-3.0-or-later
 url: "https://incenp.org/dvlpt/grainyhead/"
 repository-code: "https://github.com/gouttegd/grainyhead"
-version: 0.3.1
-date-released: "2023-08-10"
-doi: 10.5281/zenodo.8329980
+version: 0.3.2
+date-released: "2024-03-28"
+doi: 10.5281/zenodo.10892374
