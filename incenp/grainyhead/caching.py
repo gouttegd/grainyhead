@@ -15,13 +15,32 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import timedelta
+import os.path
 import time
+import re
 
-from .util import parse_duration
+_durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
 
 
 class CachePolicy(object):
-    """Represents the behaviour of a file cache."""
+    """Represents the behaviour of a file cache.
+
+    Once a CachePolicy object has been created (typically using the
+    static constructor from_string, or one of the static properties for
+    special policies), use the refresh_file() method to determine if a
+    given file should be refreshed:
+
+    if my_policy.refresh(my_cache_file):
+        # refresh the cache file
+    else:
+        # no need for refresh
+
+    Use the refresh() method to check an arbitrary timestamp against the
+    policy (e.g. if the cached data is not in a file):
+
+    if my_policy.refresh(timestamp_of_last_refresh):
+        # refresh the data
+    """
 
     def __init__(self, max_age):
         """Creates a new instance.
@@ -33,20 +52,64 @@ class CachePolicy(object):
           of the file;
         - -1 indicates the cache should be cleared;
         - -2 indicates the cache should be disabled.
+
+        It is recommended to obtain such special policies using the
+        static properties REFRESH, RESET, and DISABLED, rather than
+        calling this constructor. This allows comparing a policy
+        against those pre-established policies as follows:
+
+        if my_policy == CachePolicy.RESET:
+            # force reset
+
+        rather than calling my_policy.is_reset().
         """
 
         self._now = time.time()
         self._max_age = max_age
 
-    def refresh(self, age):
-        """Indicates whether a refresh should occur.
+    def refresh(self, then):
+        """Indicates whether a refresh should occur for data last refreshed
+        at the indicated time.
 
-        :param age: the modification time of the cached file, in seconds
-            since the Unix epoch
-        :return: True if the file should be refreshed, False otherwise
+        :param then: the time the data were last cached or refreshed, in
+            seconds since the Unix epoch
+        :return: True if the data should be refreshed, False otherwise
         """
 
-        return self._now - age > self._max_age
+        return self._now - then > self._max_age
+
+    def refresh_file(self, pathname):
+        """Indicates whether the specified file should be refreshed.
+
+        This uses the last modification time of the file to determine the
+        "age" of the cached data.
+
+        :param pathname: the path to the file that maybe should be refreshed.
+        :return: True if the file should be refreshed, False otherwise.
+        """
+
+        return self.refresh(os.path.getmtime())
+
+    def is_always_refresh(self):
+        """Indicates whether this policy mandates a systematic refresh
+        of the cache."""
+
+        return self._max_age == 0
+
+    def is_never_refresh(self):
+        """Indicates whether this policy mandates never refreshing the cache."""
+
+        return self._max_age == timedelta.max.total_seconds()
+
+    def is_reset(self):
+        """Indicates whether this policy mandates a reset of the cache."""
+
+        return self._max_age == -1
+
+    def is_disabled(self):
+        """Indicates whether this policy mandates disabling the cache."""
+
+        return self._max_age == -2
 
     _refresh_policy = None
     _no_refresh_policy = None
@@ -56,7 +119,30 @@ class CachePolicy(object):
 
     @classmethod
     def from_string(cls, value):
-        """Creates a new instance from a string representation."""
+        """Creates a new instance from a string representation.
+
+        The value can be either:
+        - a number of seconds, followed by 's' (e.g. '3600s');
+        - a number of days, optionally followed by 'd' (e.g. '5d');
+        - a number of weeks, followed by 'w' (e.g. '2w');
+        - a number of months, followed by 'm' (e.g. '3m');
+        - a number of years, followed by 'y' (e.g. '2y');
+
+        Such a value will result in a policy where cached files are
+        refreshed after the elapsed number of seconds, days, weeks,
+        months, or years. Note that in this context, a 'month' is
+        always 30 days and a 'year' is always 365 days. That is, '3m' is
+        merely a shortcut for '90d' (or simply '90') and '2y' is merely
+        a shortcut for '730d'.
+
+        The value can also be:
+        - 'disabled' or 'no-cache', to get the DISABLED policy;
+        - 'refresh' or 'always', to get the REFRESH policy;
+        - 'no-refresh' or 'never', to get the NO_REFRESH policy'
+        - 'reset' or 'clear, to get the RESET policy.
+
+        Any other value will cause None to be returned.
+        """
 
         value = value.lower()
         if value in ['disabled', 'no-cache']:
@@ -67,9 +153,15 @@ class CachePolicy(object):
             return cls.NO_REFRESH
         elif value in ['reset', 'clear']:
             return cls.RESET
-        elif (d := parse_duration(value, False)) is not None:
-            return cls(d.total_seconds())
         else:
+            if m := re.match('^([0-9]+)([sdwmy])?', value):
+                n, f = m.groups()
+                if not f:
+                    f = 'd'
+                if f == 's':
+                    return cls(int(n))
+                else:
+                    return cls(timedelta(days=int(n) * _durations[f]).total_seconds())
             return None
 
     @classmethod
@@ -111,6 +203,18 @@ class CachePolicy(object):
     @classmethod
     @property
     def ClickType(cls):
+        """Helper class to parse a CachingPolicy with Click.
+
+        Use that class as the 'type' of a Click option to let Click
+        automatically convert the value of the option into a
+        CachingPolicy instance.
+
+        Ex:
+
+        @click.option('--caching', type=CachePolicy.ClickType,
+                      default=CachePolicy.DISABLED)
+        """
+
         if cls._click_type is None:
             from click import ParamType
 
