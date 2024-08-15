@@ -17,10 +17,16 @@
 from datetime import datetime
 from enum import Enum
 import logging
+import os.path
+from os import makedirs
+import json
 
 from fastcore.basics import AttrDict
+from fastcore.xtras import dict2obj, obj2dict
 from fastcore.net import HTTP4xxClientError
 from ghapi.page import date2gh
+
+from .caching import CachePolicy
 
 GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 
@@ -331,6 +337,103 @@ class OnlineRepositoryProvider(RepositoryProvider):
             )
 
         return members
+
+
+class FileRepositoryProvider(RepositoryProvider):
+    """Provides access to cached data from a GitHub repository."""
+
+    def __init__(self, directory, backend, policy):
+        self._cachedir = directory
+        self._backend = backend
+        self._policy = policy
+
+    def get_data(self, item_type, since=None):
+        if self._policy == CachePolicy.DISABLED:
+            return self._backend.get_data(item_type, since)
+
+        data = []
+        refresh = False
+
+        data_file = self._get_data_file(item_type)
+        if self._policy != CachePolicy.RESET and os.path.exists(data_file):
+            with open(data_file, 'r') as f:
+                data = dict2obj(json.load(f))
+            mtime = os.path.getmtime(data_file)
+            if self._policy.refresh(mtime):
+                refresh = True
+                since = self._get_last_item_date(item_type, data)
+
+        if len(data) == 0:
+            refresh = True
+            since = None
+
+        if refresh:
+            new_data = self._backend.get_data(item_type, since)
+            if since is not None:
+                # Append existing data, if we asked for new data only
+                new_data.extend(data)
+            data = self._purge_duplicates(new_data, item_type)
+            makedirs(self._cachedir, 0o755, True)
+            with open(data_file, 'w') as f:
+                json.dump(obj2dict(data), f, indent=0)
+
+        return data
+
+    def _get_data_file(self, item_type):
+        filename = item_type.name.lower() + '.json'
+        return os.path.join(self._cachedir, filename)
+
+    def _get_last_item_date(self, item_type, data):
+        if item_type == RepositoryItemType.ISSUES:
+            # Force full refresh, so that we get updated status for
+            # old issues
+            return None
+        elif item_type in [
+            RepositoryItemType.LABELS,
+            RepositoryItemType.TEAMS,
+            RepositoryItemType.COMMITTERS,
+        ]:
+            # Always fetch everything for those
+            return None
+        elif item_type == RepositoryItemType.COMMITS:
+            # Only get new commits
+            return datetime.strptime(data[-1].commit.author.date, GITHUB_DATE_FORMAT)
+        else:
+            # Only get new other items
+            return datetime.strptime(data[-1].created_at, GITHUB_DATE_FORMAT)
+
+    def _purge_duplicates(self, data, item_type):
+        # The data we get from GitHub sometimes contain duplicated items,
+        # for unclear reasons. That can happen even when we ask for the
+        # full data in one single step. Here, we forcibly remove all
+        # duplicates
+        if item_type == RepositoryItemType.COMMITS:
+            # Identify duplicates by SHA1 hash, then force descending
+            # chronological order
+            return sorted(
+                {c.sha: c for c in data}.values(),
+                reverse=True,
+                key=lambda c: datetime.strptime(
+                    c.commit.author.date, GITHUB_DATE_FORMAT
+                ),
+            )
+        elif item_type == RepositoryItemType.LABELS:
+            # Identify duplicates by label ID
+            return list({l.id: l for l in data}.values())
+        elif item_type == RepositoryItemType.TEAMS:
+            # Identify duplicates by team "slugs"
+            return list({t.slug: t for t in data}.values())
+        elif item_type == RepositoryItemType.COMMITTERS:
+            # Identify duplicates by login name
+            return list({l.login: l for l in data}.values())
+        else:
+            # Identify duplicates by item ID, then force descending
+            # chronological order
+            return sorted(
+                {i.id: i for i in data}.values(),
+                reverse=True,
+                key=lambda i: datetime.strptime(i.created_at, GITHUB_DATE_FORMAT),
+            )
 
 
 class MemoryRepositoryProvider(RepositoryProvider):

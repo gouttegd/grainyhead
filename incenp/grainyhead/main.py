@@ -28,8 +28,8 @@ from pyparsing import ParseException
 
 from . import __version__
 from .repository import Repository
-from .providers import OnlineRepositoryProvider
-from .caching import FileRepositoryProvider, CachePolicy
+from .providers import OnlineRepositoryProvider, FileRepositoryProvider
+from .caching import CachePolicy
 from .util import Date, Interval
 from .metrics import MetricsFormatter, MetricsReporter
 
