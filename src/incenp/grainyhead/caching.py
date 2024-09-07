@@ -20,6 +20,7 @@ import time
 import re
 
 _durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
+_max_seconds = timedelta.max / timedelta(seconds=1)
 
 
 class CachePolicy(object):
@@ -99,7 +100,7 @@ class CachePolicy(object):
     def is_never_refresh(self):
         """Indicates whether this policy mandates never refreshing the cache."""
 
-        return self._max_age == timedelta.max.total_seconds()
+        return self._max_age == _max_seconds
 
     def is_reset(self):
         """Indicates whether this policy mandates a reset of the cache."""
@@ -179,7 +180,7 @@ class CachePolicy(object):
         """A policy that cached data should never be refreshed."""
 
         if cls._no_refresh_policy is None:
-            cls._no_refresh_policy = cls(max_age=timedelta.max.total_seconds())
+            cls._no_refresh_policy = cls(max_age=_max_seconds)
         return cls._no_refresh_policy
 
     @classmethod
