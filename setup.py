@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup
-from incenp.grainyhead import __version__
+from src.incenp.grainyhead import __version__
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
@@ -40,6 +40,7 @@ setup(
     ],
     install_requires=[line.strip() for line in requirements],
     extras_require={'IPython': ['ipython']},
+    package_dir={'': 'src'},
     packages=['incenp', 'incenp.grainyhead'],
     entry_points={'console_scripts': ['grainyhead = incenp.grainyhead.main:grh']},
     command_options={
