@@ -27,26 +27,10 @@ You may download a release tarball from the `homepage`_ or from the
 .. code-block:: console
 
    $ tar zxf grainyhead-0.3.2.tar.gz
-   $ cd grainyhead-0.3.2
+   $ python -m pip install ./grainyhead-0.3.2
 
-GrainyHead requires the following Python dependencies to work:
-
-* `click-shell <https://github.com/clarkperkins/click-shell>`_
-* `ghapi <https://ghapi.fast.ai/>`_
-* `python-dateutil <https://github.com/dateutil/dateutil>`_
-
-Install those dependencies with ``pip``:
-
-.. code-block:: console
-
-   $ python -m pip install -r requirements.txt
-
-Then build a *wheel* package and install it:
-
-.. code-block:: console
-
-   $ python setup.py bdist_wheel
-   $ python -m pip install dist/grainyhead-0.3.2-py3-none-any.whl
+(You may want/need to do that in a virtual environment, to avoid messing
+with your system packages.)
 
 To install the current development version (tip of the master branch), you may
 either clone locally the repository and then proceed as above, or use *pip* to
@@ -55,6 +39,15 @@ install directly from GitHub:
 .. code-block:: console
 
    $ python -m pip install -U git+https://github.com/gouttegd/grainyhead.git
+
+GrainyHead requires the following Python dependencies to work:
+
+* `click-shell <https://github.com/clarkperkins/click-shell>`_
+* `ghapi <https://ghapi.fast.ai/>`_
+* `python-dateutil <https://github.com/dateutil/dateutil>`_
+* `pyparsing <https://github.com/pyparsing/pyparsing/>`_
+
+They should automatically be installed by `pip` as needed.
 
 
 Testing the installation
@@ -66,8 +59,8 @@ running the following command:
 
 .. code-block:: console
 
-   $ grh --version
-   grh (GrainyHead 0.3.2)
+   $ grainyhead --version
+   grainyhead (GrainyHead 0.3.2)
    Copyright © 2024 Damien Goutte-Gattat
 
    This program is released under the GNU General Public License.
