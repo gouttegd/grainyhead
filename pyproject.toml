@@ -1,2 +1,49 @@
+[tool.poetry]
+name = "grainyhead"
+version = "0.3.2"
+description = "Helper tools for GitHub"
+license = "GPL-3.0-or-later"
+authors = ["Damien Goutte-Gattat <dpg44@cam.ac.uk>"]
+readme = "README.md"
+homepage = "https://incenp.org/dvlpt/grainyhead.html"
+repository = "https://github.com/gouttegd/grainyhead"
+documentation = "https://incenp.org/dvlpt/grainyhead/"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Environment :: Console",
+  "Intended Audience :: Developers"
+]
+packages = [{include = "incenp", from = "src"}]
+include = [
+  { path = "CITATION.cff", format = "sdist" },
+  { path = "NEWS", format = "sdist" },
+  { path = "docs", format = "sdist" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+click-shell = ">=2.1"
+ghapi = "*"
+python-dateutil = "*"
+pyparsing = ">=3.0.0"
+ipython = { version = "*", optional = true }
+
+[tool.poetry.extras]
+IPython = ["ipython"]
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "*"
+sphinx-rtd-theme = "*"
+
+[tool.poetry.scripts]
+grainyhead = "incenp.grainyhead.main:grh"
+
 [tool.black]
 skip-string-normalization = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

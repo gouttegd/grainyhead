@@ -3,5 +3,8 @@ dist
 .project
 .pydevproject
 .settings
+__pycache__
+*.lock
 *.pyc
 *.egg-info
+

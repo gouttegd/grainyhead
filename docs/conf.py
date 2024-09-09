@@ -1,8 +1,15 @@
+# -- Version --------------------------------------------------------------
+from incenp.grainyhead import __version__
+
+version = __version__
+release = __version__
+
 # -- General configuration ------------------------------------------------
 
 source_suffix = '.rst'
 master_doc = 'index'
 
+project = u'GrainyHead'
 copyright = u'2021,2022,2023,2024 Damien Goutte-Gattat'
 author = u'Damien Goutte-Gattat <dpg44@cam.ac.uk>'
 
