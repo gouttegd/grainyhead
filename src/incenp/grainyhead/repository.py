@@ -118,7 +118,7 @@ class Repository(object):
             return [u.login for u in self.get_team(group)]
 
     def create_label(self, name, color, description):
-        if not name in self.labels:
+        if name not in self.labels:
             self._api.issues.create_label(name, color, description)
             self._labels.append(name)
 

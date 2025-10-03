@@ -139,7 +139,7 @@ class MetricsReporter(object):
         )
 
     def _expand_wildcard_selectors(self, selectors):
-        if not True in ['*' in s for s in selectors]:
+        if True not in ['*' in s for s in selectors]:
             return selectors
 
         expanded_selectors = []

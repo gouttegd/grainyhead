@@ -187,7 +187,7 @@ class IntersectionFilter(ItemFilter):
         CombinedFilter.__init__(self, filters, '&')
 
     def filter(self, item):
-        return not False in [f.filter(item) for f in self._filters]
+        return False not in [f.filter(item) for f in self._filters]
 
 
 class UnionFilter(CombinedFilter):
@@ -216,5 +216,5 @@ class DifferenceFilter(CombinedFilter):
 
     def filter(self, item):
         return (
-            len([r for r in [f.filter(item) for f in self._filters] if r == True]) == 1
+            len([r for r in [f.filter(item) for f in self._filters] if r]) == 1
         )
