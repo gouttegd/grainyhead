@@ -17,20 +17,22 @@
 import os
 import re
 import sys
-from configparser import _UNSET, ConfigParser
+from configparser import ConfigParser
+from datetime import datetime, timedelta
 from random import randint
 from time import sleep
+from typing import Any, Generator, Optional
 
 import click
 from click_shell import shell
-from ghapi.core import GhApi
+from ghapi.core import GhApi  # type: ignore
 from pyparsing import ParseException
 
 from . import __version__
 from .caching import CachePolicy
 from .metrics import MetricsFormatter, MetricsReporter
 from .providers import FileRepositoryProvider, OnlineRepositoryProvider
-from .repository import Repository
+from .repository import IssueItem, Repository
 from .util import Date, Interval
 
 prog_name = "grh"
@@ -43,21 +45,26 @@ See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.
 """
 
 
-def die(msg):
+def die(msg: str) -> None:
     print(f"{prog_name}: {msg}", file=sys.stderr)
     sys.exit(1)
 
 
-def _parse_github_url(url):
+def _parse_github_url(url: str) -> tuple[str, str]:
     m = re.match('(https?://github.com/)?([^/]+)/([^/.]+)', url)
     if not m:
         die(f"Invalid GitHub repository: {url}.")
+        assert False
 
-    return m.groups()[1:]
+    return (m.groups()[1], m.groups()[2])
 
 
 class GrhContext(object):
-    def __init__(self, config_file, section='default'):
+
+    _repo: Optional[Repository]
+    _cache_policy: Optional[CachePolicy]
+
+    def __init__(self, config_file: str, section: str = 'default'):
         self._config_file = config_file
         self._name = section
 
@@ -67,7 +74,7 @@ class GrhContext(object):
         self._repo = None
         self._cache_policy = None
 
-    def reset(self, section='default', config_file=None, options=None):
+    def reset(self, section: str ='default', config_file: Optional[str] = None, options: dict[str,Any] = {}):
         self._repo = None
         self._name = section
 
@@ -82,11 +89,11 @@ class GrhContext(object):
                 self._config.set(section, key, value)
             self._has_config = True
 
-    def get_option(self, key, fallback=_UNSET):
+    def get_option(self, key: str, fallback: Any = None) -> Any:
         return self._config.get(self._name, key, fallback=fallback)
 
     @property
-    def repository(self):
+    def repository(self) -> Repository:
         if not self._repo:
             repo_url = self._config.get(self._name, 'repository')
             owner, repo = _parse_github_url(repo_url)
@@ -99,33 +106,36 @@ class GrhContext(object):
         return self._repo
 
     @property
-    def has_config(self):
+    def has_config(self) -> bool:
         return self._has_config
 
     @property
-    def config_file(self):
+    def config_file(self) -> str:
         return self._config_file
 
     @property
-    def config(self):
+    def config(self) -> ConfigParser:
         return self._config
 
     @property
-    def cache_policy(self):
+    def cache_policy(self) -> CachePolicy:
         if self._cache_policy is not None:
             return self._cache_policy
         else:
-            cache_spec = self.get_option('caching', '30d')
-            return CachePolicy.from_string(cache_spec)
+            p = CachePolicy.from_string(self.get_option('caching', '30d'))
+            if p is None:
+                die("Invalid cache policy")
+                assert False
+            return p
 
     @cache_policy.setter
-    def cache_policy(self, policy):
+    def cache_policy(self, policy: CachePolicy) -> None:
         self._cache_policy = policy
 
     @property
-    def cache_dir(self):
+    def cache_dir(self) -> str:
         xdg_data_dir = os.getenv(
-            'XDG_DATA_HOME', os.path.join(os.getenv('HOME'), '.local', 'share')
+            'XDG_DATA_HOME', os.path.join(os.getenv('HOME', '~'), '.local', 'share')
         )
         return os.path.join(xdg_data_dir, 'grainyhead', self._name)
 
@@ -158,7 +168,7 @@ class GrhContext(object):
 )
 @click.version_option(version=__version__, message=prog_notice)
 @click.pass_context
-def grh(ctx, config, section, no_cache, caching):
+def grh(ctx, config: str, section: str, no_cache: bool, caching: CachePolicy):
     """Command-line tool for GitHub."""
 
     context = GrhContext(config, section)
@@ -187,7 +197,7 @@ def grh(ctx, config, section, no_cache, caching):
     help="The name of a GitHub team.",
 )
 @click.pass_obj
-def list_issues(grh, cutoff, team):
+def list_issues(grh: GrhContext, cutoff: datetime, team: str) -> None:
     """List open issues.
 
     This commands list open issues that have not been updated for a
@@ -239,7 +249,7 @@ def list_issues(grh, cutoff, team):
     '--limit', '-l', default=-1, metavar='N', help="Only close the N oldest issues."
 )
 @click.pass_obj
-def auto_close(grh, comment, cutoff, dry_run, limit):
+def auto_close(grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, limit: int) -> None:
     """Close old issues.
 
     This command automatically closes issues that have not been updated
@@ -278,14 +288,14 @@ def auto_close(grh, comment, cutoff, dry_run, limit):
             sleep(randint(2, 10))
 
 
-def _list_closable_issues(issues):
+def _list_closable_issues(issues: list[IssueItem]) -> Generator[str]:
     yield f"The following {len(issues)} issues are about to be closed:\n"
     for issue in issues:
         last_update, _ = issue.updated_at.split('T')
         yield f"{issue.number}: last update {last_update}: {issue.title}\n"
 
 
-def _show_closing_issue(issue):
+def _show_closing_issue(issue: Optional[IssueItem] = None) -> str:
     if issue:
         return f"Closing issue #{issue.number}"
     else:
@@ -339,7 +349,7 @@ def _show_closing_issue(issue):
     help="Break down the metrics per periods of the specified duration.",
 )
 @click.pass_obj
-def metrics(grh, start, end, team, selector, fmt, period):
+def metrics(grh: GrhContext, start: datetime, end: datetime, team: str, selector: list[str], fmt:str, period: timedelta):
     """Get repository metrics.
 
     This command collects and prints the number of repository events
@@ -369,7 +379,7 @@ def metrics(grh, start, end, team, selector, fmt, period):
 
 @grh.command()
 @click.pass_obj
-def conf(grh):
+def conf(grh: GrhContext) -> None:
     """Edit the configuration.
 
     This command either creates a new basic configuration file for use
@@ -403,7 +413,7 @@ def conf(grh):
     help="Show stats about the local cache.",
 )
 @click.pass_obj
-def debug(grh, cache_stats):
+def debug(grh: GrhContext, cache_stats: bool) -> None:
     """Print various informations for debugging."""
 
     if cache_stats:
@@ -433,7 +443,7 @@ try:
 
     @grh.command(name='ipython')
     @click.pass_obj
-    def python_shell(grh):
+    def python_shell(grh: GrhContext) -> None:
         """Start an interactive Python shell.
 
         This commands starts a Python shell from where the GitHub API

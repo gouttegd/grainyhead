@@ -36,6 +36,8 @@ dev = [
     "ruff",
     "sphinx",
     "sphinx-rtd-theme",
+    "types-python-dateutil",
+    "types-click-shell",
 ]
 
 [build-system]

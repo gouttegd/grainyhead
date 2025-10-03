@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any, Optional, TextIO, Union
 
 import pyparsing as pp
 
@@ -24,18 +27,22 @@ from .filtering import (
     DateRangeFilter,
     DifferenceFilter,
     IntersectionFilter,
+    ItemFilter,
     LabelFilter,
     NullFilter,
     TeamFilter,
     UnionFilter,
     UserFilter,
 )
+from .repository import Repository
 
 
 class MetricsReporter(object):
     """Generate metrics about events in a repository."""
 
-    def __init__(self, repository):
+    _repo: Repository
+
+    def __init__(self, repository: Repository):
         """Create a new instance.
 
         :param repository: the repository to work with
@@ -44,7 +51,7 @@ class MetricsReporter(object):
         self._repo = repository
         self._selector_parser = None
 
-    def get_report(self, selectors, start, end, period=None):
+    def get_report(self, selectors: list[str], start: datetime, end: datetime, period: Optional[timedelta] = None) -> Union[list[_MetricsReportSet], _MetricsReportSet]:
         selectors = self._expand_wildcard_selectors(selectors)
 
         if period is None:
@@ -66,7 +73,7 @@ class MetricsReporter(object):
 
             return reports
 
-    def _get_report_for_period(self, selectors, start, end):
+    def _get_report_for_period(self, selectors: list[str], start: datetime, end: datetime) -> _MetricsReportSet:
         rset = _MetricsReportSet(start, end)
         self._date_filter = DateRangeFilter(start, end)
 
@@ -80,7 +87,7 @@ class MetricsReporter(object):
 
         return rset
 
-    def get_single_report(self, item_filter):
+    def get_single_report(self, item_filter: ItemFilter) -> _Report:
         """Get a single report object based on the given filter."""
 
         issues_opened = [i for i in self._repo.all_issues if item_filter.filter(i)]
@@ -114,13 +121,13 @@ class MetricsReporter(object):
 
         releases = [r for r in self._repo.releases if item_filter.filter(r)]
 
-        contributors = []
-        contributors.extend([i.user.login for i in issues_opened])
-        contributors.extend([p.user.login for p in pulls_opened])
-        contributors.extend([c.user.login for c in comments])
-        contributors.extend([e.actor.login for e in issues_closes if e.actor is not None])
-        contributors.extend([e.actor.login for e in pulls_closes if e.actor is not None])
-        contributors = set(contributors)
+        _contributors = []
+        _contributors.extend([i.user.login for i in issues_opened])
+        _contributors.extend([p.user.login for p in pulls_opened])
+        _contributors.extend([c.user.login for c in comments])
+        _contributors.extend([e.actor.login for e in issues_closes if e.actor is not None])
+        _contributors.extend([e.actor.login for e in pulls_closes if e.actor is not None])
+        contributors = set(_contributors)
 
         return _Report(
             str(item_filter),
@@ -138,7 +145,7 @@ class MetricsReporter(object):
             ],
         )
 
-    def _expand_wildcard_selectors(self, selectors):
+    def _expand_wildcard_selectors(self, selectors: list[str]) -> list[str]:
         if True not in ['*' in s for s in selectors]:
             return selectors
 
@@ -166,7 +173,7 @@ class MetricsReporter(object):
 
         return expanded_selectors
 
-    def _get_filter_from_selector(self, selector):
+    def _get_filter_from_selector(self, selector: str) -> ItemFilter:
         return self._get_parser().parse_string(selector).as_list()[0]
 
     def _get_parser(self):
@@ -245,11 +252,11 @@ class MetricsReporter(object):
 class MetricsFormatter(object):
     """Write a MetricsReportSet object."""
 
-    def write(self, metrics, output):
+    def write(self, metrics: Union[list[_MetricsReportSet], _MetricsReportSet], output: TextIO) -> None:
         pass
 
     @staticmethod
-    def get_formatter(fmt):
+    def get_formatter(fmt: str) -> MetricsFormatter:
         if fmt.lower() == 'markdown':
             return MarkdownMetricsFormatter()
         elif fmt.lower() == 'csv':
@@ -269,7 +276,7 @@ class JsonMetricsFormatter(MetricsFormatter):
             d = self._get_dict_for_period(metrics)
         json.dump(d, output, indent=2)
 
-    def _get_dict_for_period(self, metrics):
+    def _get_dict_for_period(self, metrics: _MetricsReportSet) -> dict[str, Any]:
         d = {
             'period': {
                 'to': metrics.end_date.strftime('%Y-%m-%d'),
@@ -297,7 +304,7 @@ class JsonMetricsFormatter(MetricsFormatter):
                     'releases': report.releases,
                 },
             }
-            d['contributions'].append(c)
+            d['contributions'].append(c)    # type: ignore
 
         return d
 
@@ -310,7 +317,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
         else:
             self._write_reportset(reportset, output)
 
-    def _write_reportset(self, reportset, output):
+    def _write_reportset(self, reportset: _MetricsReportSet, output: TextIO) -> None:
         start = reportset.start_date
         end = reportset.end_date
 
@@ -354,7 +361,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
             self._write_line(item, reportset.contributions, output, with_total)
         output.write('\n')
 
-    def _write_line(self, label, reports, output, with_total):
+    def _write_line(self, label: str, reports: list[_Report], output: TextIO, with_total: bool) -> None:
         property_name = label.lower().replace(' ', '_')
 
         if with_total:
@@ -404,7 +411,7 @@ class CsvMetricsFormatter(MetricsFormatter):
         else:
             self._write_reportset(reportset, output)
 
-    def _write_reportset(self, reportset, output):
+    def _write_reportset(self, reportset: _MetricsReportSet, output: TextIO) -> None:
         for report in reportset.contributions:
             values = [
                 reportset.end_date.strftime('%Y-%m-%d'),
@@ -427,7 +434,11 @@ class CsvMetricsFormatter(MetricsFormatter):
 class _MetricsReportSet(object):
     """This object holds some metrics about events in a repository."""
 
-    def __init__(self, start, end):
+    _start: datetime
+    _end: datetime
+    _reports: list[_Report]
+
+    def __init__(self, start: datetime, end: datetime):
         """Create a new instance for the specified reporting period."""
 
         self._start = start
@@ -435,19 +446,19 @@ class _MetricsReportSet(object):
         self._reports = []
 
     @property
-    def start_date(self):
+    def start_date(self) -> datetime:
         """The beginning of the reporting period."""
 
         return self._start
 
     @property
-    def end_date(self):
+    def end_date(self) -> datetime:
         """The end of the reporting period."""
 
         return self._end
 
     @property
-    def contributions(self):
+    def contributions(self) -> list[_Report]:
         """The individual contribution reports."""
 
         return self._reports
@@ -456,69 +467,73 @@ class _MetricsReportSet(object):
 class _Report(object):
     """This object holds metrics computed from a given selector."""
 
-    def __init__(self, selector, name, values):
+    _selector: str
+    _name: str
+    _values: list[int]
+
+    def __init__(self, selector: str, name:str , values: list[int]):
         self._selector = selector
         self._name = name
         self._values = values
 
     @property
-    def selector(self):
+    def selector(self) -> str:
         return self._selector
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def contributors(self):
+    def contributors(self) -> int:
         return self._values[8]
 
     @property
-    def issues_opened(self):
+    def issues_opened(self) -> int:
         return self._values[0]
 
     @property
-    def issues_closed(self):
+    def issues_closed(self) -> int:
         return self._values[1]
 
     @property
-    def pull_requests_opened(self):
+    def pull_requests_opened(self) -> int:
         return self._values[2]
 
     @property
-    def pull_requests_closed(self):
+    def pull_requests_closed(self) -> int:
         return self._values[3]
 
     @property
-    def pull_requests_merged(self):
+    def pull_requests_merged(self) -> int:
         return self._values[4]
 
     @property
-    def comments(self):
+    def comments(self) -> int:
         return self._values[5]
 
     @property
-    def commits(self):
+    def commits(self) -> int:
         return self._values[6]
 
     @property
-    def releases(self):
+    def releases(self) -> int:
         return self._values[7]
 
     @property
-    def all_contributions(self):
+    def all_contributions(self) -> int:
         return sum(self._values)
 
 
 class NamedFilter(IntersectionFilter):
-    def __init__(self, name, filters):
+    def __init__(self, name: str, filters: list[ItemFilter]):
         IntersectionFilter.__init__(self, filters)
         self._name = name
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
-    def __str__(self):
+    def __str__(self) -> str:
         components = [str(f) for f in self._filters if not str(f).startswith('date:')]
         return ' & '.join(components)

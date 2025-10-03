@@ -14,10 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import os.path
 import re
 import time
 from datetime import timedelta
+from typing import ClassVar, Optional
+
+from click import ParamType
 
 _durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
 _max_seconds = timedelta.max / timedelta(seconds=1)
@@ -43,7 +48,7 @@ class CachePolicy(object):
         # refresh the data
     """
 
-    def __init__(self, max_age):
+    def __init__(self, max_age: int|float):
         """Creates a new instance.
 
         If positive, the 'max_age' parameter is the number of seconds
@@ -68,7 +73,7 @@ class CachePolicy(object):
         self._now = time.time()
         self._max_age = max_age
 
-    def refresh(self, then):
+    def refresh(self, then: float|int) -> bool:
         """Indicates whether a refresh should occur for data last refreshed
         at the indicated time.
 
@@ -79,7 +84,7 @@ class CachePolicy(object):
 
         return self._now - then > self._max_age
 
-    def refresh_file(self, pathname):
+    def refresh_file(self, pathname: str) -> bool:
         """Indicates whether the specified file should be refreshed.
 
         This uses the last modification time of the file to determine the
@@ -89,37 +94,38 @@ class CachePolicy(object):
         :return: True if the file should be refreshed, False otherwise.
         """
 
-        return self.refresh(os.path.getmtime())
+        return self.refresh(os.path.getmtime(pathname))
 
-    def is_always_refresh(self):
+    def is_always_refresh(self) -> bool:
         """Indicates whether this policy mandates a systematic refresh
         of the cache."""
 
         return self._max_age == 0
 
-    def is_never_refresh(self):
+    def is_never_refresh(self) -> bool:
         """Indicates whether this policy mandates never refreshing the cache."""
 
         return self._max_age == _max_seconds
 
-    def is_reset(self):
+    def is_reset(self) -> bool:
         """Indicates whether this policy mandates a reset of the cache."""
 
         return self._max_age == -1
 
-    def is_disabled(self):
+    def is_disabled(self) -> bool:
         """Indicates whether this policy mandates disabling the cache."""
 
         return self._max_age == -2
 
-    _refresh_policy = None
-    _no_refresh_policy = None
-    _reset_policy = None
-    _disabled_policy = None
-    _click_type = None
+    REFRESH: ClassVar[CachePolicy]
+    NO_REFRESH: ClassVar[CachePolicy]
+    RESET: ClassVar[CachePolicy]
+    DISABLED: ClassVar[CachePolicy]
+    ClickType: ClassVar[ParamType]
+
 
     @classmethod
-    def from_string(cls, value):
+    def from_string(cls, value: str) -> Optional[CachePolicy]:
         """Creates a new instance from a string representation.
 
         The value can be either:
@@ -166,44 +172,7 @@ class CachePolicy(object):
             return None
 
     @classmethod
-    @property
-    def REFRESH(cls):
-        """A policy that cached data should always be refreshed."""
-
-        if cls._refresh_policy is None:
-            cls._refresh_policy = cls(max_age=0)
-        return cls._refresh_policy
-
-    @classmethod
-    @property
-    def NO_REFRESH(cls):
-        """A policy that cached data should never be refreshed."""
-
-        if cls._no_refresh_policy is None:
-            cls._no_refresh_policy = cls(max_age=_max_seconds)
-        return cls._no_refresh_policy
-
-    @classmethod
-    @property
-    def RESET(cls):
-        """A policy that cached data should be cleared and refreshed."""
-
-        if cls._reset_policy is None:
-            cls._reset_policy = cls(max_age=-1)
-        return cls._reset_policy
-
-    @classmethod
-    @property
-    def DISABLED(cls):
-        """A policy that the cache should be completely disabled."""
-
-        if cls._disabled_policy is None:
-            cls._disabled_policy = cls(max_age=-2)
-        return cls._disabled_policy
-
-    @classmethod
-    @property
-    def ClickType(cls):
+    def get_click_type(cls) -> ParamType:
         """Helper class to parse a CachingPolicy with Click.
 
         Use that class as the 'type' of a Click option to let Click
@@ -215,24 +184,24 @@ class CachePolicy(object):
         @click.option('--caching', type=CachePolicy.ClickType,
                       default=CachePolicy.DISABLED)
         """
+        class CachePolicyParamType(ParamType):
+            name = 'cache-policy'
 
-        if cls._click_type is None:
-            from click import ParamType
+            def convert(self, value, param, ctx):
+                if isinstance(value, cls):
+                    return value
 
-            class CachePolicyParamType(ParamType):
-                name = 'cache-policy'
+                if p := cls.from_string(value):
+                    return p
+                else:
+                    self.fail(
+                        f"Cannot convert '{value}' to a cache policy", param, ctx
+                    )
 
-                def convert(self, value, param, ctx):
-                    if isinstance(value, cls):
-                        return value
+        return CachePolicyParamType()
 
-                    if p := cls.from_string(value):
-                        return p
-                    else:
-                        self.fail(
-                            f"Cannot convert '{value}' to a cache policy", param, ctx
-                        )
-
-            cls._click_type = CachePolicyParamType()
-
-        return cls._click_type
+CachePolicy.REFRESH = CachePolicy(0)
+CachePolicy.NO_REFRESH = CachePolicy(_max_seconds)
+CachePolicy.RESET = CachePolicy(-1)
+CachePolicy.DISABLED = CachePolicy(-2)
+CachePolicy.ClickType = CachePolicy.get_click_type()

@@ -14,32 +14,44 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .providers import MemoryRepositoryProvider
+from typing import Optional
+
+from fastcore.basics import AttrDict  # type: ignore
+from ghapi.core import GhApi  # type: ignore
+
+from .providers import IssueItem, MemoryRepositoryProvider, RepositoryProvider
 
 
 class Repository(object):
-    def __init__(self, api, backend):
+
+    _labels: Optional[list[str]]
+    _teams: Optional[dict[str, AttrDict]]
+    _committers: Optional[list[str]]
+    _commenters: Optional[list[str]]
+
+    def __init__(self, api: GhApi, backend: RepositoryProvider):
         self._api = api
         self._provider = MemoryRepositoryProvider(backend)
+
         self._labels = None
         self._teams = None
         self._committers = None
         self._commenters = None
 
     @property
-    def issues(self):
+    def issues(self) -> list[IssueItem]:
         return [i for i in self._provider.issues if i.closed_at is None]
 
     @property
-    def all_issues(self):
+    def all_issues(self) -> list[IssueItem]:
         return self._provider.issues
 
     @property
-    def pull_requests(self):
+    def pull_requests(self) -> list[IssueItem]:
         return [i for i in self._provider.pull_requests if i.closed_at is None]
 
     @property
-    def all_pull_requests(self):
+    def all_pull_requests(self) -> list[IssueItem]:
         return self._provider.pull_requests
 
     @property
@@ -59,17 +71,17 @@ class Repository(object):
         return self._provider.releases
 
     @property
-    def labels(self):
+    def labels(self) -> list[str]:
         if self._labels is None:
             self._labels = [l.name for l in self._provider.labels]
         return self._labels
 
     @property
-    def contributors(self):
-        return set(self.committers + self.commenters)
+    def contributors(self) -> list[str]:
+        return list(set(self.committers + self.commenters))
 
     @property
-    def committers(self):
+    def committers(self) -> list[str]:
         if self._committers is None:
             self._committers = [
                 l.login
@@ -79,7 +91,7 @@ class Repository(object):
         return self._committers
 
     @property
-    def commenters(self):
+    def commenters(self) -> list[str]:
         if self._commenters is None:
             commenters = [
                 i.user.login
@@ -97,17 +109,17 @@ class Repository(object):
         return self._commenters
 
     @property
-    def collaborators(self):
+    def collaborators(self) -> list[str]:
         return [m.login for m in self.get_team()]
 
-    def get_team(self, name='__collaborators'):
+    def get_team(self, name:str = '__collaborators') -> list[AttrDict]:
         if self._teams is None:
             self._teams = {}
             for team in self._provider.teams:
                 self._teams[team.slug] = team
         return self._teams[name].members
 
-    def get_usernames(self, group='__collaborators'):
+    def get_usernames(self, group: str = '__collaborators') -> list[str]:
         if group == '__contributors':
             return self.contributors
         elif group == '__committers':
@@ -117,12 +129,12 @@ class Repository(object):
         else:
             return [u.login for u in self.get_team(group)]
 
-    def create_label(self, name, color, description):
+    def create_label(self, name: str, color: str, description: str) -> None:
         if name not in self.labels:
             self._api.issues.create_label(name, color, description)
-            self._labels.append(name)
+            self.labels.append(name)
 
-    def close_issue(self, issue, label=None, comment=None):
+    def close_issue(self, issue: IssueItem, label: Optional[str] = None, comment: Optional[str] = None) -> None:
         if label:
             self._api.issues.add_labels(issue.number, [label])
         if comment:

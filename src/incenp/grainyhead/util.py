@@ -16,6 +16,7 @@
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Optional, Union
 
 import click
 from dateutil.relativedelta import relativedelta
@@ -99,7 +100,7 @@ class TimeIntervalParamType(click.ParamType):
             self.fail(f"Cannot convert '{value}' to a time interval", param, ctx)
 
 
-def parse_duration(value, relative=False):
+def parse_duration(value: str, relative: bool = False) -> Optional[Union[timedelta, relativedelta]]:
     """Parse a string representing a duration.
 
     This function parses a string of the form 'Nf', where N is a
@@ -121,7 +122,7 @@ def parse_duration(value, relative=False):
             f = 'd'
         if relative:
             d = {_periods[f]: int(n)}
-            return relativedelta(**d)
+            return relativedelta(**d)   # type: ignore
         else:
             return timedelta(days=int(n) * _durations[f])
     else:
