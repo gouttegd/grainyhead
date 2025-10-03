@@ -1,49 +1,54 @@
-[tool.poetry]
+[project]
 name = "grainyhead"
 version = "0.3.2"
 description = "Helper tools for GitHub"
-license = "GPL-3.0-or-later"
-authors = ["Damien Goutte-Gattat <dpg44@cam.ac.uk>"]
+authors = [
+    {name="Damien Goutte-Gattat", email="dgouttegattat@incenp.org"}
+]
 readme = "README.md"
-homepage = "https://incenp.org/dvlpt/grainyhead.html"
-repository = "https://github.com/gouttegd/grainyhead"
-documentation = "https://incenp.org/dvlpt/grainyhead/"
 classifiers = [
   "Development Status :: 1 - Planning",
   "Environment :: Console",
   "Intended Audience :: Developers"
 ]
-packages = [{include = "incenp", from = "src"}]
-include = [
-  { path = "CITATION.cff", format = "sdist" },
-  { path = "NEWS", format = "sdist" },
-  { path = "docs", format = "sdist" }
+requires-python = ">=3.9"
+dependencies = [
+    "click-shell>=2.1",
+    "ghapi",
+    "pyparsing>=3.0.0",
+    "python-dateutil",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-click-shell = ">=2.1"
-ghapi = "*"
-python-dateutil = "*"
-pyparsing = ">=3.0.0"
-ipython = { version = "*", optional = true }
+[project.urls]
+Homepage = "https://incenp.org/dvlpt/grainyhead.html"
+Documentation = "https://incenp.org/dvlpt/grainyhead/"
+Repository = "https://github.com/gouttegd/grainyhead"
 
-[tool.poetry.extras]
-IPython = ["ipython"]
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "*"
-sphinx-rtd-theme = "*"
-
-[tool.poetry.scripts]
+[project.scripts]
 grainyhead = "incenp.grainyhead.main:grh"
 
-[tool.black]
-skip-string-normalization = true
+[project.optional-dependencies]
+ipython = ["ipython"]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "ruff",
+    "sphinx",
+    "sphinx-rtd-theme",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "incenp.grainyhead"
+source-include = [
+    "CITATION.cff",
+    "NEWS",
+    "docs/*",
+]
+
+[tool.ruff.lint]
+ignore = ["E741"]
