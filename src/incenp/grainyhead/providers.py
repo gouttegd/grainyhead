@@ -30,7 +30,7 @@ from ghapi.page import date2gh  # type: ignore
 
 from .caching import CachePolicy
 
-GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
 
 def gh2date(dtstr: str) -> datetime:
@@ -65,15 +65,24 @@ class RepositoryItem(AttrDict):
     def update_time(self) -> datetime:
         return datetime.strptime(self.updated_at, GITHUB_DATE_FORMAT)
 
-    def _filter_time(self, time: datetime, after: Optional[datetime] = None, before: Optional[datetime] = None) -> bool:
+    def _filter_time(
+        self,
+        time: datetime,
+        after: Optional[datetime] = None,
+        before: Optional[datetime] = None,
+    ) -> bool:
         return (not after or time > after) and (not before or time < before)
 
-    def created(self, after: Optional[datetime] = None, before: Optional[datetime] = None) -> bool:
+    def created(
+        self, after: Optional[datetime] = None, before: Optional[datetime] = None
+    ) -> bool:
         """Indicates whether the item was created in a given time span."""
 
         return self._filter_time(self.creation_time, after, before)
 
-    def updated(self, after: Optional[datetime] = None, before: Optional[datetime] = None) -> bool:
+    def updated(
+        self, after: Optional[datetime] = None, before: Optional[datetime] = None
+    ) -> bool:
         """Indicates whether the item was updated in a given time span."""
 
         return self._filter_time(self.update_time, after, before)
@@ -106,12 +115,16 @@ class IssueItem(RepositoryItem):
             return None
         return datetime.strptime(self.closed_at, GITHUB_DATE_FORMAT)
 
-    def closed(self, after: Optional[datetime] = None, before: Optional[datetime] = None) -> bool:
+    def closed(
+        self, after: Optional[datetime] = None, before: Optional[datetime] = None
+    ) -> bool:
         """Indicates whether the issue was closed in a given time span."""
 
         if not self.closed_at:
             return False
-        return self._filter_time(datetime.strptime(self.close_at, GITHUB_DATE_FORMAT), after, before)
+        return self._filter_time(
+            datetime.strptime(self.close_at, GITHUB_DATE_FORMAT), after, before
+        )
 
     @property
     def label_strings(self) -> list[str]:
@@ -165,7 +178,9 @@ class ReleaseItem(RepositoryItem):
 class RepositoryProvider(object):
     """Provides access to the data from a GitHub repository."""
 
-    def get_data(self, item_type: RepositoryItemType, since: Optional[datetime] = None) -> Any:
+    def get_data(
+        self, item_type: RepositoryItemType, since: Optional[datetime] = None
+    ) -> Any:
         """Gets a specific type of data from the repository.
 
         :param item_type: the type of data to fetch
@@ -180,7 +195,7 @@ class RepositoryProvider(object):
         return [
             i
             for i in self.get_data(RepositoryItemType.ISSUES)
-            if not hasattr(i, 'pull_request')
+            if not hasattr(i, "pull_request")
         ]
 
     @property
@@ -188,7 +203,7 @@ class RepositoryProvider(object):
         return [
             i
             for i in self.get_data(RepositoryItemType.ISSUES)
-            if hasattr(i, 'pull_request')
+            if hasattr(i, "pull_request")
         ]
 
     @property
@@ -242,11 +257,13 @@ class OnlineRepositoryProvider(RepositoryProvider):
             api.repos.list_releases,
         ]
 
-    def get_data(self, item_type: RepositoryItemType, since: Optional[datetime] = None) -> Any:
+    def get_data(
+        self, item_type: RepositoryItemType, since: Optional[datetime] = None
+    ) -> Any:
         data = None
         if item_type == RepositoryItemType.ISSUES:
             data = self._fetch(
-                self._api.issues.list_for_repo, apiargs={'state': 'all'}, since=since
+                self._api.issues.list_for_repo, apiargs={"state": "all"}, since=since
             )
         elif item_type == RepositoryItemType.TEAMS:
             data = self._fetch_teams()
@@ -269,7 +286,9 @@ class OnlineRepositoryProvider(RepositoryProvider):
 
         return committers
 
-    def _fetch(self, apicall: Callable, apiargs: dict = {}, since: Optional[datetime] = None) -> list[AttrDict]:
+    def _fetch(
+        self, apicall: Callable, apiargs: dict = {}, since: Optional[datetime] = None
+    ) -> list[AttrDict]:
         """Generic method to fetch data from GitHub."""
 
         if since is not None:
@@ -278,7 +297,7 @@ class OnlineRepositoryProvider(RepositoryProvider):
                 # we need to ensure manually that we don't get more
                 # than what we want
                 return self._fetch_since(apicall, since, apiargs)
-            apiargs['since'] = date2gh(since)
+            apiargs["since"] = date2gh(since)
 
         things = apicall(per_page=100, **apiargs)
         last_page = self._api.last_page()
@@ -290,7 +309,9 @@ class OnlineRepositoryProvider(RepositoryProvider):
 
         return things
 
-    def _fetch_since(self, apicall: Callable, since: datetime, apiargs: dict ={}) -> list[AttrDict]:
+    def _fetch_since(
+        self, apicall: Callable, since: datetime, apiargs: dict = {}
+    ) -> list[AttrDict]:
         """Specialized method for items without 'since=' support."""
 
         things = apicall(per_page=100, **apiargs)
@@ -310,32 +331,31 @@ class OnlineRepositoryProvider(RepositoryProvider):
         return [i for i in things if gh2date(i.created_at) >= since]
 
     def _fetch_teams(self) -> list[AttrDict]:
-        teams = [AttrDict({'slug': '__collaborators'})]
+        teams = [AttrDict({"slug": "__collaborators"})]
         try:
             teams.extend(self._fetch(self._api.teams.list))
         except HTTP4xxClientError:
             logging.warn(
-                "Cannot get teams list (possibly due to " "insufficient access rights)"
+                "Cannot get teams list (possibly due to insufficient access rights)"
             )
 
         for team in teams:
-            team['members'] = self._fetch_team_members(team.slug)
+            team["members"] = self._fetch_team_members(team.slug)
 
         return teams
 
     def _fetch_team_members(self, slug: str) -> list[AttrDict]:
         members = []
         try:
-            if slug == '__collaborators':
+            if slug == "__collaborators":
                 members = self._fetch(self._api.repos.list_collaborators)
             else:
                 members = self._fetch(
-                    self._api.teams.list_members_in_org, {'team_slug': slug}
+                    self._api.teams.list_members_in_org, {"team_slug": slug}
                 )
         except HTTP4xxClientError:
             logging.warn(
-                "Cannot get team members (possibly due to "
-                "insufficient access rights)"
+                "Cannot get team members (possibly due to insufficient access rights)"
             )
 
         return members
@@ -344,12 +364,16 @@ class OnlineRepositoryProvider(RepositoryProvider):
 class FileRepositoryProvider(RepositoryProvider):
     """Provides access to cached data from a GitHub repository."""
 
-    def __init__(self, directory: str, backend: RepositoryProvider, policy: CachePolicy):
+    def __init__(
+        self, directory: str, backend: RepositoryProvider, policy: CachePolicy
+    ):
         self._cachedir = directory
         self._backend = backend
         self._policy = policy
 
-    def get_data(self, item_type: RepositoryItemType, since: Optional[datetime] = None) -> list[AttrDict]:
+    def get_data(
+        self, item_type: RepositoryItemType, since: Optional[datetime] = None
+    ) -> list[AttrDict]:
         if self._policy == CachePolicy.DISABLED:
             return self._backend.get_data(item_type, since)
 
@@ -358,7 +382,7 @@ class FileRepositoryProvider(RepositoryProvider):
 
         data_file = self._get_data_file(item_type)
         if self._policy != CachePolicy.RESET and os.path.exists(data_file):
-            with open(data_file, 'r') as f:
+            with open(data_file, "r") as f:
                 data = dict2obj(json.load(f))
             mtime = os.path.getmtime(data_file)
             if self._policy.refresh(mtime):
@@ -376,16 +400,18 @@ class FileRepositoryProvider(RepositoryProvider):
                 new_data.extend(data)
             data = self._purge_duplicates(new_data, item_type)
             makedirs(self._cachedir, 0o755, True)
-            with open(data_file, 'w') as f:
+            with open(data_file, "w") as f:
                 json.dump(obj2dict(data), f, indent=0)
 
         return data
 
     def _get_data_file(self, item_type: RepositoryItemType) -> str:
-        filename = item_type.name.lower() + '.json'
+        filename = item_type.name.lower() + ".json"
         return os.path.join(self._cachedir, filename)
 
-    def _get_last_item_date(self, item_type: RepositoryItemType, data: list[AttrDict]) -> Optional[datetime]:
+    def _get_last_item_date(
+        self, item_type: RepositoryItemType, data: list[AttrDict]
+    ) -> Optional[datetime]:
         if item_type == RepositoryItemType.ISSUES:
             # Force full refresh, so that we get updated status for
             # old issues
@@ -404,7 +430,9 @@ class FileRepositoryProvider(RepositoryProvider):
             # Only get new other items
             return datetime.strptime(data[-1].created_at, GITHUB_DATE_FORMAT)
 
-    def _purge_duplicates(self, data: list[AttrDict], item_type: RepositoryItemType) -> list[AttrDict]:
+    def _purge_duplicates(
+        self, data: list[AttrDict], item_type: RepositoryItemType
+    ) -> list[AttrDict]:
         # The data we get from GitHub sometimes contain duplicated items,
         # for unclear reasons. That can happen even when we ask for the
         # full data in one single step. Here, we forcibly remove all
@@ -459,7 +487,9 @@ class MemoryRepositoryProvider(RepositoryProvider):
         self._backend = backend
         self._data: dict[RepositoryItemType, list[Any]] = {}
 
-    def get_data(self, item_type: RepositoryItemType, since: Optional[datetime] = None) -> list[Any]:
+    def get_data(
+        self, item_type: RepositoryItemType, since: Optional[datetime] = None
+    ) -> list[Any]:
         if item_type not in self._data:
             items = self._backend.get_data(item_type, since)
             wrapper = self._wrappers.get(item_type, None)

@@ -21,9 +21,9 @@ from typing import Optional, Union
 import click
 from dateutil.relativedelta import relativedelta
 
-_durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
-_periods = {'d': 'days', 'w': 'weeks', 'm': 'months', 'y': 'years'}
-_date_formats = ['%Y-%m-%d', '%Y-%m']
+_durations = {"d": 1, "w": 7, "m": 30, "y": 365}
+_periods = {"d": "days", "w": "weeks", "m": "months", "y": "years"}
+_date_formats = ["%Y-%m-%d", "%Y-%m"]
 
 
 class DateParamType(click.ParamType):
@@ -43,15 +43,15 @@ class DateParamType(click.ParamType):
     - 'origin', for the earliest possible date.
     """
 
-    name = 'date'
+    name = "date"
 
     def convert(self, value, param, ctx):
         if isinstance(value, datetime):
             return value
 
-        if value.lower() == 'now':
+        if value.lower() == "now":
             return datetime.now(timezone.utc)
-        elif value.lower() == 'origin':
+        elif value.lower() == "origin":
             return datetime.min.replace(tzinfo=timezone.utc)
         elif (delta := parse_duration(value)) is not None:
             return datetime.now(timezone.utc) - delta
@@ -79,20 +79,20 @@ class TimeIntervalParamType(click.ParamType):
     - 'yearly', as an alternative for '1y'.
     """
 
-    name = 'interval'
+    name = "interval"
 
     def convert(self, value, param, ctx):
         if isinstance(value, relativedelta):
             return value
 
         value = value.lower()
-        if value == 'weekly':
+        if value == "weekly":
             return relativedelta(weeks=1)
-        elif value == 'monthly':
+        elif value == "monthly":
             return relativedelta(months=1)
-        elif value == 'quarterly':
+        elif value == "quarterly":
             return relativedelta(months=3)
-        elif value == 'yearly':
+        elif value == "yearly":
             return relativedelta(years=1)
         elif (interval := parse_duration(value, True)) is not None:
             return interval
@@ -100,7 +100,9 @@ class TimeIntervalParamType(click.ParamType):
             self.fail(f"Cannot convert '{value}' to a time interval", param, ctx)
 
 
-def parse_duration(value: str, relative: bool = False) -> Optional[Union[timedelta, relativedelta]]:
+def parse_duration(
+    value: str, relative: bool = False
+) -> Optional[Union[timedelta, relativedelta]]:
     """Parse a string representing a duration.
 
     This function parses a string of the form 'Nf', where N is a
@@ -116,13 +118,13 @@ def parse_duration(value: str, relative: bool = False) -> Optional[Union[timedel
     form, the function returns None.
     """
 
-    if m := re.match('^([0-9]+)([dwmy])?$', value):
+    if m := re.match("^([0-9]+)([dwmy])?$", value):
         n, f = m.groups()
         if not f:
-            f = 'd'
+            f = "d"
         if relative:
             d = {_periods[f]: int(n)}
-            return relativedelta(**d)   # type: ignore
+            return relativedelta(**d)  # type: ignore
         else:
             return timedelta(days=int(n) * _durations[f])
     else:

@@ -23,7 +23,6 @@ from .providers import IssueItem, MemoryRepositoryProvider, RepositoryProvider
 
 
 class Repository(object):
-
     _labels: Optional[list[str]]
     _teams: Optional[dict[str, AttrDict]]
     _committers: Optional[list[str]]
@@ -86,7 +85,7 @@ class Repository(object):
             self._committers = [
                 l.login
                 for l in self._provider.committers
-                if not l.login.endswith('[bot]')
+                if not l.login.endswith("[bot]")
             ]
         return self._committers
 
@@ -96,13 +95,13 @@ class Repository(object):
             commenters = [
                 i.user.login
                 for i in self.all_issues
-                if not i.user.login.endswith('[bot]')
+                if not i.user.login.endswith("[bot]")
             ]
             commenters.extend(
                 [
                     c.user.login
                     for c in self.comments
-                    if not c.user.login.endswith('[bot]')
+                    if not c.user.login.endswith("[bot]")
                 ]
             )
             self._commenters = list(set(commenters))
@@ -112,19 +111,19 @@ class Repository(object):
     def collaborators(self) -> list[str]:
         return [m.login for m in self.get_team()]
 
-    def get_team(self, name:str = '__collaborators') -> list[AttrDict]:
+    def get_team(self, name: str = "__collaborators") -> list[AttrDict]:
         if self._teams is None:
             self._teams = {}
             for team in self._provider.teams:
                 self._teams[team.slug] = team
         return self._teams[name].members
 
-    def get_usernames(self, group: str = '__collaborators') -> list[str]:
-        if group == '__contributors':
+    def get_usernames(self, group: str = "__collaborators") -> list[str]:
+        if group == "__contributors":
             return self.contributors
-        elif group == '__committers':
+        elif group == "__committers":
             return self.committers
-        elif group == '__commenters':
+        elif group == "__commenters":
             return self.commenters
         else:
             return [u.login for u in self.get_team(group)]
@@ -134,9 +133,14 @@ class Repository(object):
             self._api.issues.create_label(name, color, description)
             self.labels.append(name)
 
-    def close_issue(self, issue: IssueItem, label: Optional[str] = None, comment: Optional[str] = None) -> None:
+    def close_issue(
+        self,
+        issue: IssueItem,
+        label: Optional[str] = None,
+        comment: Optional[str] = None,
+    ) -> None:
         if label:
             self._api.issues.add_labels(issue.number, [label])
         if comment:
             self._api.issues.create_comment(issue.number, comment)
-        self._api.issues.update(issue.number, state='closed')
+        self._api.issues.update(issue.number, state="closed")

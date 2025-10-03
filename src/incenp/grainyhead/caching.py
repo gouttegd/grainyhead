@@ -24,7 +24,7 @@ from typing import ClassVar, Optional
 
 from click import ParamType
 
-_durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
+_durations = {"d": 1, "w": 7, "m": 30, "y": 365}
 _max_seconds = timedelta.max / timedelta(seconds=1)
 
 
@@ -48,7 +48,7 @@ class CachePolicy(object):
         # refresh the data
     """
 
-    def __init__(self, max_age: int|float):
+    def __init__(self, max_age: int | float):
         """Creates a new instance.
 
         If positive, the 'max_age' parameter is the number of seconds
@@ -73,7 +73,7 @@ class CachePolicy(object):
         self._now = time.time()
         self._max_age = max_age
 
-    def refresh(self, then: float|int) -> bool:
+    def refresh(self, then: float | int) -> bool:
         """Indicates whether a refresh should occur for data last refreshed
         at the indicated time.
 
@@ -123,7 +123,6 @@ class CachePolicy(object):
     DISABLED: ClassVar[CachePolicy]
     ClickType: ClassVar[ParamType]
 
-
     @classmethod
     def from_string(cls, value: str) -> Optional[CachePolicy]:
         """Creates a new instance from a string representation.
@@ -152,20 +151,20 @@ class CachePolicy(object):
         """
 
         value = value.lower()
-        if value in ['disabled', 'no-cache']:
+        if value in ["disabled", "no-cache"]:
             return cls.DISABLED
-        elif value in ['refresh', 'always']:
+        elif value in ["refresh", "always"]:
             return cls.REFRESH
-        elif value in ['no-refresh', 'never']:
+        elif value in ["no-refresh", "never"]:
             return cls.NO_REFRESH
-        elif value in ['reset', 'clear']:
+        elif value in ["reset", "clear"]:
             return cls.RESET
         else:
-            if m := re.match('^([0-9]+)([sdwmy])?', value):
+            if m := re.match("^([0-9]+)([sdwmy])?", value):
                 n, f = m.groups()
                 if not f:
-                    f = 'd'
-                if f == 's':
+                    f = "d"
+                if f == "s":
                     return cls(int(n))
                 else:
                     return cls(timedelta(days=int(n) * _durations[f]).total_seconds())
@@ -184,8 +183,9 @@ class CachePolicy(object):
         @click.option('--caching', type=CachePolicy.ClickType,
                       default=CachePolicy.DISABLED)
         """
+
         class CachePolicyParamType(ParamType):
-            name = 'cache-policy'
+            name = "cache-policy"
 
             def convert(self, value, param, ctx):
                 if isinstance(value, cls):
@@ -194,11 +194,10 @@ class CachePolicy(object):
                 if p := cls.from_string(value):
                     return p
                 else:
-                    self.fail(
-                        f"Cannot convert '{value}' to a cache policy", param, ctx
-                    )
+                    self.fail(f"Cannot convert '{value}' to a cache policy", param, ctx)
 
         return CachePolicyParamType()
+
 
 CachePolicy.REFRESH = CachePolicy(0)
 CachePolicy.NO_REFRESH = CachePolicy(_max_seconds)

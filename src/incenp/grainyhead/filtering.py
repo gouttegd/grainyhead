@@ -47,7 +47,7 @@ class NullFilter(ItemFilter):
         return True
 
     def __str__(self) -> str:
-        return 'all'
+        return "all"
 
 
 class DateRangeFilter(ItemFilter):
@@ -70,7 +70,7 @@ class DateRangeFilter(ItemFilter):
         self._end = end
 
     def __str__(self) -> str:
-        return f'date:{self._start:%Y-%m-%d}..{self._end:%Y-%m-%d}'
+        return f"date:{self._start:%Y-%m-%d}..{self._end:%Y-%m-%d}"
 
     def filter(self, item: RepositoryItem) -> bool:
         return item.created(after=self._start, before=self._end)
@@ -94,7 +94,7 @@ class TeamFilter(ItemFilter):
         self._members = members
 
     def __str__(self) -> str:
-        return f'team:{self._slug}'
+        return f"team:{self._slug}"
 
     @property
     def name(self) -> str:
@@ -111,11 +111,11 @@ class UserFilter(ItemFilter):
         self._user = user_name
 
     def __str__(self) -> str:
-        return f'user:{self._user}'
+        return f"user:{self._user}"
 
     @property
     def name(self) -> str:
-        return f'@{self._user}'
+        return f"@{self._user}"
 
     def filter(self, item: RepositoryItem) -> bool:
         return self._user == item.user_name
@@ -128,7 +128,7 @@ class LabelFilter(ItemFilter):
         self._label = label
 
     def __str__(self) -> str:
-        return f'label:{self._label}'
+        return f"label:{self._label}"
 
     @property
     def name(self) -> str:
@@ -150,11 +150,11 @@ class ComplementFilter(ItemFilter):
         self._filter = inner_filter
 
     def __str__(self) -> str:
-        return f'!{str(self._filter)}'
+        return f"!{str(self._filter)}"
 
     @property
     def name(self) -> str:
-        return f'!{self._filter.name}'
+        return f"!{self._filter.name}"
 
     def filter(self, item: RepositoryItem) -> bool:
         return not self._filter.filter(item)
@@ -174,11 +174,11 @@ class CombinedFilter(ItemFilter):
         self._op = operator
 
     def __str__(self) -> str:
-        return f' {self._op} '.join([str(f) for f in self._filters])
+        return f" {self._op} ".join([str(f) for f in self._filters])
 
     @property
     def name(self) -> str:
-        return f' {self._op} '.join([f.name for f in self._filters])
+        return f" {self._op} ".join([f.name for f in self._filters])
 
 
 class IntersectionFilter(CombinedFilter):
@@ -189,7 +189,7 @@ class IntersectionFilter(CombinedFilter):
     """
 
     def __init__(self, filters: list[ItemFilter]):
-        CombinedFilter.__init__(self, filters, '&')
+        CombinedFilter.__init__(self, filters, "&")
 
     def filter(self, item: RepositoryItem) -> bool:
         return False not in [f.filter(item) for f in self._filters]
@@ -203,7 +203,7 @@ class UnionFilter(CombinedFilter):
     """
 
     def __init__(self, filters: list[ItemFilter]):
-        CombinedFilter.__init__(self, filters, '|')
+        CombinedFilter.__init__(self, filters, "|")
 
     def filter(self, item: RepositoryItem) -> bool:
         return True in [f.filter(item) for f in self._filters]
@@ -217,9 +217,7 @@ class DifferenceFilter(CombinedFilter):
     """
 
     def __init__(self, filters: list[ItemFilter]):
-        CombinedFilter.__init__(self, filters, '^')
+        CombinedFilter.__init__(self, filters, "^")
 
     def filter(self, item: RepositoryItem) -> bool:
-        return (
-            len([r for r in [f.filter(item) for f in self._filters] if r]) == 1
-        )
+        return len([r for r in [f.filter(item) for f in self._filters] if r]) == 1

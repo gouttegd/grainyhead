@@ -51,7 +51,13 @@ class MetricsReporter(object):
         self._repo = repository
         self._selector_parser = None
 
-    def get_report(self, selectors: list[str], start: datetime, end: datetime, period: Optional[timedelta] = None) -> Union[list[_MetricsReportSet], _MetricsReportSet]:
+    def get_report(
+        self,
+        selectors: list[str],
+        start: datetime,
+        end: datetime,
+        period: Optional[timedelta] = None,
+    ) -> Union[list[_MetricsReportSet], _MetricsReportSet]:
         selectors = self._expand_wildcard_selectors(selectors)
 
         if period is None:
@@ -73,14 +79,16 @@ class MetricsReporter(object):
 
             return reports
 
-    def _get_report_for_period(self, selectors: list[str], start: datetime, end: datetime) -> _MetricsReportSet:
+    def _get_report_for_period(
+        self, selectors: list[str], start: datetime, end: datetime
+    ) -> _MetricsReportSet:
         rset = _MetricsReportSet(start, end)
         self._date_filter = DateRangeFilter(start, end)
 
         for selector in selectors:
             item_filter = self._get_filter_from_selector(selector)
             report = self.get_single_report(item_filter)
-            if report.name.startswith('@') and report.all_contributions == 0:
+            if report.name.startswith("@") and report.all_contributions == 0:
                 # Exclude reports for users with no contributions at all
                 continue
             rset.contributions.append(report)
@@ -94,8 +102,8 @@ class MetricsReporter(object):
         issues_closes = [
             e
             for e in self._repo.events
-            if e.event == 'closed'
-            and not hasattr(e.issue, 'pull_request')
+            if e.event == "closed"
+            and not hasattr(e.issue, "pull_request")
             and item_filter.filter(e)
         ]
 
@@ -105,14 +113,14 @@ class MetricsReporter(object):
         pulls_closes = [
             e
             for e in self._repo.events
-            if e.event == 'closed'
-            and hasattr(e.issue, 'pull_request')
+            if e.event == "closed"
+            and hasattr(e.issue, "pull_request")
             and item_filter.filter(e)
         ]
         pulls_merged = [
             e
             for e in self._repo.events
-            if e.event == 'merged' and item_filter.filter(e)
+            if e.event == "merged" and item_filter.filter(e)
         ]
 
         comments = [c for c in self._repo.comments if item_filter.filter(c)]
@@ -125,8 +133,12 @@ class MetricsReporter(object):
         _contributors.extend([i.user.login for i in issues_opened])
         _contributors.extend([p.user.login for p in pulls_opened])
         _contributors.extend([c.user.login for c in comments])
-        _contributors.extend([e.actor.login for e in issues_closes if e.actor is not None])
-        _contributors.extend([e.actor.login for e in pulls_closes if e.actor is not None])
+        _contributors.extend(
+            [e.actor.login for e in issues_closes if e.actor is not None]
+        )
+        _contributors.extend(
+            [e.actor.login for e in pulls_closes if e.actor is not None]
+        )
         contributors = set(_contributors)
 
         return _Report(
@@ -146,25 +158,25 @@ class MetricsReporter(object):
         )
 
     def _expand_wildcard_selectors(self, selectors: list[str]) -> list[str]:
-        if True not in ['*' in s for s in selectors]:
+        if True not in ["*" in s for s in selectors]:
             return selectors
 
         expanded_selectors = []
         for selector in selectors:
-            if 'user:*' in selector:
-                group = selector[6:].split(' ', 2)[0]
-                real_group = group if len(group) > 0 else '__contributors'
+            if "user:*" in selector:
+                group = selector[6:].split(" ", 2)[0]
+                real_group = group if len(group) > 0 else "__contributors"
                 expanded_selectors.extend(
                     [
-                        selector.replace('user:*' + group, f'user:{u}')
+                        selector.replace("user:*" + group, f"user:{u}")
                         for u in self._repo.get_usernames(real_group)
                     ]
                 )
 
-            elif 'label:*' in selector:
+            elif "label:*" in selector:
                 expanded_selectors.extend(
                     [
-                        selector.replace('label:*', f'label:{l}')
+                        selector.replace("label:*", f"label:{l}")
                         for l in self._repo.labels
                     ]
                 )
@@ -179,27 +191,27 @@ class MetricsReporter(object):
     def _get_parser(self):
         if self._selector_parser is None:
             filter_value = pp.Combine(
-                pp.Word(pp.alphanums + '-_')
-                + (pp.White() + pp.Word(pp.alphanums + '-_'))[...]
+                pp.Word(pp.alphanums + "-_")
+                + (pp.White() + pp.Word(pp.alphanums + "-_"))[...]
             ).leaveWhitespace()
             team_filter = (
-                (pp.Literal('team:') + filter_value)
+                (pp.Literal("team:") + filter_value)
                 .set_parse_action(
                     lambda t: TeamFilter(t[1], self._repo.get_usernames(t[1]))
                 )
                 .leave_whitespace()
             )
             user_filter = (
-                (pp.Literal('user:') + filter_value)
+                (pp.Literal("user:") + filter_value)
                 .set_parse_action(lambda t: UserFilter(t[1]))
                 .leave_whitespace()
             )
             label_filter = (
-                (pp.Literal('label:') + filter_value)
+                (pp.Literal("label:") + filter_value)
                 .set_parse_action(lambda t: LabelFilter(t[1]))
                 .leave_whitespace()
             )
-            all_filter = pp.Literal('all').set_parse_action(lambda _: NullFilter())
+            all_filter = pp.Literal("all").set_parse_action(lambda _: NullFilter())
             filter_item = all_filter | team_filter | user_filter | label_filter
 
             expression = pp.Forward()
@@ -211,16 +223,16 @@ class MetricsReporter(object):
             atom = (
                 filter_item
                 | complement_filter
-                | (pp.Literal('(').suppress() + expression + pp.Literal(')').suppress())
+                | (pp.Literal("(").suppress() + expression + pp.Literal(")").suppress())
             )
-            operator = pp.one_of(['&', '|', '^'])
+            operator = pp.one_of(["&", "|", "^"])
             expression <<= (atom + operator + pp.White().suppress())[0, 1] + atom
             expression.set_parse_action(self._expression_action)
 
             selector = (
                 expression
                 + (
-                    (pp.Literal('AS') | pp.Literal('=')).suppress() + pp.Word(pp.alphas)
+                    (pp.Literal("AS") | pp.Literal("=")).suppress() + pp.Word(pp.alphas)
                 )[0, 1]
                 + pp.StringEnd()
             ).set_parse_action(self._selector_action)
@@ -236,11 +248,11 @@ class MetricsReporter(object):
 
     def _expression_action(self, tokens):
         if len(tokens) == 3:
-            if tokens[1] == '&':
+            if tokens[1] == "&":
                 return IntersectionFilter([tokens[0], tokens[2]])
-            elif tokens[1] == '|':
+            elif tokens[1] == "|":
                 return UnionFilter([tokens[0], tokens[2]])
-            elif tokens[1] == '^':
+            elif tokens[1] == "^":
                 return DifferenceFilter([tokens[0], tokens[2]])
             else:
                 # should not happen
@@ -252,17 +264,19 @@ class MetricsReporter(object):
 class MetricsFormatter(object):
     """Write a MetricsReportSet object."""
 
-    def write(self, metrics: Union[list[_MetricsReportSet], _MetricsReportSet], output: TextIO) -> None:
+    def write(
+        self, metrics: Union[list[_MetricsReportSet], _MetricsReportSet], output: TextIO
+    ) -> None:
         pass
 
     @staticmethod
     def get_formatter(fmt: str) -> MetricsFormatter:
-        if fmt.lower() == 'markdown':
+        if fmt.lower() == "markdown":
             return MarkdownMetricsFormatter()
-        elif fmt.lower() == 'csv':
+        elif fmt.lower() == "csv":
             return CsvMetricsFormatter()
-        elif fmt.lower() == 'tsv':
-            return CsvMetricsFormatter(sep='\t')
+        elif fmt.lower() == "tsv":
+            return CsvMetricsFormatter(sep="\t")
         else:
             # We default to JSON
             return JsonMetricsFormatter()
@@ -278,33 +292,33 @@ class JsonMetricsFormatter(MetricsFormatter):
 
     def _get_dict_for_period(self, metrics: _MetricsReportSet) -> dict[str, Any]:
         d = {
-            'period': {
-                'to': metrics.end_date.strftime('%Y-%m-%d'),
-                'from': metrics.start_date.strftime('%Y-%m-%d'),
+            "period": {
+                "to": metrics.end_date.strftime("%Y-%m-%d"),
+                "from": metrics.start_date.strftime("%Y-%m-%d"),
             },
-            'contributions': [],
+            "contributions": [],
         }
 
         for report in metrics.contributions:
             c = {
-                'selector': report.selector,
-                'results': {
-                    'contributors': report.contributors,
-                    'issues': {
-                        'opened': report.issues_opened,
-                        'closed': report.issues_closed,
+                "selector": report.selector,
+                "results": {
+                    "contributors": report.contributors,
+                    "issues": {
+                        "opened": report.issues_opened,
+                        "closed": report.issues_closed,
                     },
-                    'pull_requests': {
-                        'opened': report.pull_requests_opened,
-                        'closed': report.pull_requests_closed,
-                        'merged': report.pull_requests_merged,
+                    "pull_requests": {
+                        "opened": report.pull_requests_opened,
+                        "closed": report.pull_requests_closed,
+                        "merged": report.pull_requests_merged,
                     },
-                    'comments': report.comments,
-                    'commits': report.commits,
-                    'releases': report.releases,
+                    "comments": report.comments,
+                    "commits": report.commits,
+                    "releases": report.releases,
                 },
             }
-            d['contributions'].append(c)    # type: ignore
+            d["contributions"].append(c)  # type: ignore
 
         return d
 
@@ -321,7 +335,7 @@ class MarkdownMetricsFormatter(MetricsFormatter):
         start = reportset.start_date
         end = reportset.end_date
 
-        with_total = reportset.contributions[0].selector == 'all'
+        with_total = reportset.contributions[0].selector == "all"
 
         output.write(f"From {start:%Y-%m-%d} to {end:%Y-%m-%d}\n")
         output.write("\n")
@@ -359,10 +373,12 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
         for item in items:
             self._write_line(item, reportset.contributions, output, with_total)
-        output.write('\n')
+        output.write("\n")
 
-    def _write_line(self, label: str, reports: list[_Report], output: TextIO, with_total: bool) -> None:
-        property_name = label.lower().replace(' ', '_')
+    def _write_line(
+        self, label: str, reports: list[_Report], output: TextIO, with_total: bool
+    ) -> None:
+        property_name = label.lower().replace(" ", "_")
 
         if with_total:
             total = getattr(reports[0], property_name)
@@ -384,26 +400,26 @@ class MarkdownMetricsFormatter(MetricsFormatter):
 
 
 class CsvMetricsFormatter(MetricsFormatter):
-    def __init__(self, sep=','):
+    def __init__(self, sep=","):
         self._sep = sep
 
     def write(self, reportset, output):
         headers = [
-            'Date',
-            'Selector',
-            'Selector name',
-            'Issues opened',
-            'Issues closed',
-            'Pull requests opened',
-            'Pull requests closed',
-            'Pull requests merged',
-            'Comments',
-            'Commits',
-            'Releases',
-            'Contributors',
+            "Date",
+            "Selector",
+            "Selector name",
+            "Issues opened",
+            "Issues closed",
+            "Pull requests opened",
+            "Pull requests closed",
+            "Pull requests merged",
+            "Comments",
+            "Commits",
+            "Releases",
+            "Contributors",
         ]
         output.write(self._sep.join(headers))
-        output.write('\n')
+        output.write("\n")
 
         if isinstance(reportset, list):
             for r in reportset:
@@ -414,7 +430,7 @@ class CsvMetricsFormatter(MetricsFormatter):
     def _write_reportset(self, reportset: _MetricsReportSet, output: TextIO) -> None:
         for report in reportset.contributions:
             values = [
-                reportset.end_date.strftime('%Y-%m-%d'),
+                reportset.end_date.strftime("%Y-%m-%d"),
                 report.selector,
                 report.name,
                 report.issues_opened,
@@ -428,7 +444,7 @@ class CsvMetricsFormatter(MetricsFormatter):
                 report.contributors,
             ]
             output.write(self._sep.join([str(v) for v in values]))
-            output.write('\n')
+            output.write("\n")
 
 
 class _MetricsReportSet(object):
@@ -471,7 +487,7 @@ class _Report(object):
     _name: str
     _values: list[int]
 
-    def __init__(self, selector: str, name:str , values: list[int]):
+    def __init__(self, selector: str, name: str, values: list[int]):
         self._selector = selector
         self._name = name
         self._values = values
@@ -535,5 +551,5 @@ class NamedFilter(IntersectionFilter):
         return self._name
 
     def __str__(self) -> str:
-        components = [str(f) for f in self._filters if not str(f).startswith('date:')]
-        return ' & '.join(components)
+        components = [str(f) for f in self._filters if not str(f).startswith("date:")]
+        return " & ".join(components)

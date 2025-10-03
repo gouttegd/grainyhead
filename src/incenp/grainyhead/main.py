@@ -51,7 +51,7 @@ def die(msg: str) -> None:
 
 
 def _parse_github_url(url: str) -> tuple[str, str]:
-    m = re.match('(https?://github.com/)?([^/]+)/([^/.]+)', url)
+    m = re.match("(https?://github.com/)?([^/]+)/([^/.]+)", url)
     if not m:
         die(f"Invalid GitHub repository: {url}.")
         assert False
@@ -60,11 +60,10 @@ def _parse_github_url(url: str) -> tuple[str, str]:
 
 
 class GrhContext(object):
-
     _repo: Optional[Repository]
     _cache_policy: Optional[CachePolicy]
 
-    def __init__(self, config_file: str, section: str = 'default'):
+    def __init__(self, config_file: str, section: str = "default"):
         self._config_file = config_file
         self._name = section
 
@@ -74,7 +73,12 @@ class GrhContext(object):
         self._repo = None
         self._cache_policy = None
 
-    def reset(self, section: str ='default', config_file: Optional[str] = None, options: dict[str,Any] = {}):
+    def reset(
+        self,
+        section: str = "default",
+        config_file: Optional[str] = None,
+        options: dict[str, Any] = {},
+    ):
         self._repo = None
         self._name = section
 
@@ -95,9 +99,9 @@ class GrhContext(object):
     @property
     def repository(self) -> Repository:
         if not self._repo:
-            repo_url = self._config.get(self._name, 'repository')
+            repo_url = self._config.get(self._name, "repository")
             owner, repo = _parse_github_url(repo_url)
-            token = self._config.get(self._name, 'token', fallback=None)
+            token = self._config.get(self._name, "token", fallback=None)
             api = GhApi(owner=owner, repo=repo, org=owner, token=token)
             backend = FileRepositoryProvider(
                 self.cache_dir, OnlineRepositoryProvider(api), self.cache_policy
@@ -122,7 +126,7 @@ class GrhContext(object):
         if self._cache_policy is not None:
             return self._cache_policy
         else:
-            p = CachePolicy.from_string(self.get_option('caching', '30d'))
+            p = CachePolicy.from_string(self.get_option("caching", "30d"))
             if p is None:
                 die("Invalid cache policy")
                 assert False
@@ -135,33 +139,33 @@ class GrhContext(object):
     @property
     def cache_dir(self) -> str:
         xdg_data_dir = os.getenv(
-            'XDG_DATA_HOME', os.path.join(os.getenv('HOME', '~'), '.local', 'share')
+            "XDG_DATA_HOME", os.path.join(os.getenv("HOME", "~"), ".local", "share")
         )
-        return os.path.join(xdg_data_dir, 'grainyhead', self._name)
+        return os.path.join(xdg_data_dir, "grainyhead", self._name)
 
 
-@shell(context_settings={'help_option_names': ['-h', '--help']}, prompt="grh> ")
+@shell(context_settings={"help_option_names": ["-h", "--help"]}, prompt="grh> ")
 @click.option(
-    '--config',
-    '-c',
+    "--config",
+    "-c",
     type=click.Path(exists=False),
-    default='{}/config'.format(click.get_app_dir('grainyhead')),
+    default="{}/config".format(click.get_app_dir("grainyhead")),
     help="Path to an alternative configuration file.",
 )
 @click.option(
-    '--section',
-    '-s',
-    default='default',
+    "--section",
+    "-s",
+    default="default",
     help="Name of the configuration file section to use.",
 )
 @click.option(
-    '--no-cache',
+    "--no-cache",
     is_flag=True,
     default=False,
     help="Disable the file cache (deprecated: use --caching=disabled instead).",
 )
 @click.option(
-    '--caching',
+    "--caching",
     type=CachePolicy.ClickType,
     default=None,
     help="Set the caching policy.",
@@ -181,19 +185,19 @@ def grh(ctx, config: str, section: str, no_cache: bool, caching: CachePolicy):
         ctx.invoke(conf)
 
 
-@grh.command(name='issues')
+@grh.command(name="issues")
 @click.option(
-    '--older-than',
-    'cutoff',
-    default='1y',
+    "--older-than",
+    "cutoff",
+    default="1y",
     type=Date,
     help="""Only list issues that have not been updated since the specified date
             or for the specified duration (default=1y, or one year ago).""",
 )
 @click.option(
-    '--team',
-    default='__collaborators',
-    metavar='NAME',
+    "--team",
+    default="__collaborators",
+    metavar="NAME",
     help="The name of a GitHub team.",
 )
 @click.pass_obj
@@ -213,43 +217,45 @@ def list_issues(grh: GrhContext, cutoff: datetime, team: str) -> None:
     print("| ----- | ------ | ----- | ----------- |")
 
     for issue in issues:
-        assignees = ', '.join(
-            ['@[{}]({})'.format(a.login, a.html_url) for a in issue.assignees]
+        assignees = ", ".join(
+            ["@[{}]({})".format(a.login, a.html_url) for a in issue.assignees]
         )
-        is_team = 'Yes' if issue.user.login in members else 'No'
+        is_team = "Yes" if issue.user.login in members else "No"
 
         print(
             f"| [{issue.title}]({issue.html_url}) | @[{issue.user.login}]({issue.user.html_url}) | {is_team} | {assignees} |"
         )
 
 
-@grh.command(name='close')
+@grh.command(name="close")
 @click.option(
-    '--older-than',
-    'cutoff',
-    default='1y',
+    "--older-than",
+    "cutoff",
+    default="1y",
     type=Date,
     help="""Close issues that have not been updated since the specified date
             or for the specified duration (default=1y, or one year ago).""",
 )
 @click.option(
-    '--comment',
-    '-c',
+    "--comment",
+    "-c",
     default=None,
     help="Text of the comment to add to the closed issues.",
 )
 @click.option(
-    '--dry-run',
-    '-d',
+    "--dry-run",
+    "-d",
     is_flag=True,
     default=False,
     help="List issues that would be closed without actually closing them.",
 )
 @click.option(
-    '--limit', '-l', default=-1, metavar='N', help="Only close the N oldest issues."
+    "--limit", "-l", default=-1, metavar="N", help="Only close the N oldest issues."
 )
 @click.pass_obj
-def auto_close(grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, limit: int) -> None:
+def auto_close(
+    grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, limit: int
+) -> None:
     """Close old issues.
 
     This command automatically closes issues that have not been updated
@@ -259,11 +265,11 @@ def auto_close(grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, l
     repo = grh.repository
 
     repo.create_label(
-        'autoclosed-unfixed', 'ff7000', 'This issue has been closed automatically.'
+        "autoclosed-unfixed", "ff7000", "This issue has been closed automatically."
     )
 
     if not comment:
-        comment = grh.get_option('close.comment', fallback=None)
+        comment = grh.get_option("close.comment", fallback=None)
 
     issues = [i for i in reversed(repo.issues) if i.updated(before=cutoff)]
     if limit != -1:
@@ -277,7 +283,7 @@ def auto_close(grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, l
 
     with click.progressbar(issues, item_show_func=_show_closing_issue) as bar:
         for issue in bar:
-            repo.close_issue(issue, 'autoclosed-unfixed', comment)
+            repo.close_issue(issue, "autoclosed-unfixed", comment)
 
             # GitHub's documentation says that requests that trigger
             # notifications (such as adding a comment to an issue)
@@ -291,7 +297,7 @@ def auto_close(grh: GrhContext, comment: str, cutoff: datetime, dry_run: bool, l
 def _list_closable_issues(issues: list[IssueItem]) -> Generator[str]:
     yield f"The following {len(issues)} issues are about to be closed:\n"
     for issue in issues:
-        last_update, _ = issue.updated_at.split('T')
+        last_update, _ = issue.updated_at.split("T")
         yield f"{issue.number}: last update {last_update}: {issue.title}\n"
 
 
@@ -304,52 +310,60 @@ def _show_closing_issue(issue: Optional[IssueItem] = None) -> str:
 
 @grh.command()
 @click.option(
-    '--from',
-    'start',
+    "--from",
+    "start",
     type=Date,
-    default='6m',
+    default="6m",
     help="""Set the beginning of the reporting period.
                       Default to 6m (6 months ago).""",
 )
 @click.option(
-    '--to',
-    'end',
+    "--to",
+    "end",
     type=Date,
-    default='now',
+    default="now",
     help="""Set the end of the reporting period.
                       Default to now.""",
 )
 @click.option(
-    '--team',
-    default='__collaborators',
-    metavar='NAME',
+    "--team",
+    default="__collaborators",
+    metavar="NAME",
     help="The name of a GitHub team.",
 )
 @click.option(
-    '--selector',
-    '-s',
+    "--selector",
+    "-s",
     multiple=True,
     default=[],
-    metavar='SELECTOR',
+    metavar="SELECTOR",
     help="Select a subset of repository events.",
 )
 @click.option(
-    '--format',
-    '-f',
-    'fmt',
-    default='markdown',
-    type=click.Choice(['json', 'markdown', 'csv', 'tsv']),
+    "--format",
+    "-f",
+    "fmt",
+    default="markdown",
+    type=click.Choice(["json", "markdown", "csv", "tsv"]),
     help="Write output in the specified format.",
 )
 @click.option(
-    '--period',
-    '-p',
+    "--period",
+    "-p",
     type=Interval,
     default=None,
     help="Break down the metrics per periods of the specified duration.",
 )
 @click.pass_obj
-def metrics(grh: GrhContext, start: datetime, end: datetime, team: str, selector: list[str], fmt:str, period: timedelta):
+def metrics(
+    grh: GrhContext,
+    start: datetime,
+    end: datetime,
+    team: str,
+    selector: list[str],
+    fmt: str,
+    period: timedelta,
+):
     """Get repository metrics.
 
     This command collects and prints the number of repository events
@@ -361,9 +375,9 @@ def metrics(grh: GrhContext, start: datetime, end: datetime, team: str, selector
     reporter = MetricsReporter(grh.repository)
     if len(selector) == 0:
         selector = [
-            'all = Total',
-            f'team:{team} = Internal',
-            f'!team:{team} = External',
+            "all = Total",
+            f"team:{team} = Internal",
+            f"!team:{team} = External",
         ]
 
     try:
@@ -392,22 +406,22 @@ def conf(grh: GrhContext) -> None:
         grh.reset(config_file=grh.config_file)
     else:
         opts = {}
-        opts['repository'] = click.termui.prompt("Repository name or URL")
+        opts["repository"] = click.termui.prompt("Repository name or URL")
 
         click.echo(
             "Visit https://github.com/settings/tokens to create "
             "a personal access token."
         )
-        opts['token'] = click.termui.prompt("Token")
+        opts["token"] = click.termui.prompt("Token")
         grh.reset(options=opts)
 
-        with open(grh.config_file, 'w') as f:
+        with open(grh.config_file, "w") as f:
             grh.config.write(f)
 
 
 @grh.command()
 @click.option(
-    '--cache-stats',
+    "--cache-stats",
     is_flag=True,
     default=False,
     help="Show stats about the local cache.",
@@ -419,15 +433,15 @@ def debug(grh: GrhContext, cache_stats: bool) -> None:
     if cache_stats:
         grh.cache_policy = CachePolicy.NO_REFRESH
         for item in [
-            'issues',
-            'all_issues',
-            'pull_requests',
-            'all_pull_requests',
-            'comments',
-            'events',
-            'commits',
-            'releases',
-            'labels',
+            "issues",
+            "all_issues",
+            "pull_requests",
+            "all_pull_requests",
+            "comments",
+            "events",
+            "commits",
+            "releases",
+            "labels",
         ]:
             items = getattr(grh.repository, item)
             n = len(items)
@@ -441,7 +455,7 @@ def debug(grh: GrhContext, cache_stats: bool) -> None:
 try:
     from IPython import start_ipython
 
-    @grh.command(name='ipython')
+    @grh.command(name="ipython")
     @click.pass_obj
     def python_shell(grh: GrhContext) -> None:
         """Start an interactive Python shell.
@@ -452,11 +466,11 @@ try:
         """
 
         start_ipython(
-            argv=[], user_ns={'api': grh.repository._api, 'repo': grh.repository}
+            argv=[], user_ns={"api": grh.repository._api, "repo": grh.repository}
         )
 
 except ImportError:
     pass
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     grh()
