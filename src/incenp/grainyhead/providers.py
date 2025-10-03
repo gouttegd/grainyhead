@@ -14,16 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
-from enum import Enum
+import json
 import logging
 import os.path
+from datetime import datetime
+from enum import Enum
 from os import makedirs
-import json
 
 from fastcore.basics import AttrDict
-from fastcore.xtras import dict2obj, obj2dict
 from fastcore.net import HTTP4xxClientError
+from fastcore.xtras import dict2obj, obj2dict
 from ghapi.page import date2gh
 
 from .caching import CachePolicy

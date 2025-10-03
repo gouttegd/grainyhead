@@ -20,15 +20,15 @@ from datetime import timedelta
 import pyparsing as pp
 
 from .filtering import (
-    NullFilter,
-    DateRangeFilter,
-    TeamFilter,
-    UserFilter,
-    LabelFilter,
     ComplementFilter,
-    IntersectionFilter,
-    UnionFilter,
+    DateRangeFilter,
     DifferenceFilter,
+    IntersectionFilter,
+    LabelFilter,
+    NullFilter,
+    TeamFilter,
+    UnionFilter,
+    UserFilter,
 )
 
 

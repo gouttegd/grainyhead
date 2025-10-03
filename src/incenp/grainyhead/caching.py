@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import timedelta
 import os.path
-import time
 import re
+import time
+from datetime import timedelta
 
 _durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
 _max_seconds = timedelta.max / timedelta(seconds=1)

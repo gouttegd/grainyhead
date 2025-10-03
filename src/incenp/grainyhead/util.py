@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta, timezone
-from dateutil.relativedelta import relativedelta
 import re
+from datetime import datetime, timedelta, timezone
 
 import click
+from dateutil.relativedelta import relativedelta
 
 _durations = {'d': 1, 'w': 7, 'm': 30, 'y': 365}
 _periods = {'d': 'days', 'w': 'weeks', 'm': 'months', 'y': 'years'}

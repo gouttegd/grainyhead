@@ -14,12 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from configparser import ConfigParser, _UNSET
-from time import sleep
-from random import randint
-import sys
-import re
 import os
+import re
+import sys
+from configparser import _UNSET, ConfigParser
+from random import randint
+from time import sleep
 
 import click
 from click_shell import shell
@@ -27,11 +27,11 @@ from ghapi.core import GhApi
 from pyparsing import ParseException
 
 from . import __version__
-from .repository import Repository
-from .providers import OnlineRepositoryProvider, FileRepositoryProvider
 from .caching import CachePolicy
-from .util import Date, Interval
 from .metrics import MetricsFormatter, MetricsReporter
+from .providers import FileRepositoryProvider, OnlineRepositoryProvider
+from .repository import Repository
+from .util import Date, Interval
 
 prog_name = "grh"
 prog_notice = f"""\
