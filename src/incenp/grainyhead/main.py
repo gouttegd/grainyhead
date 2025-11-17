@@ -17,11 +17,12 @@
 import os
 import re
 import sys
+from collections.abc import Generator
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from random import randint
 from time import sleep
-from typing import Any, Generator, Optional
+from typing import Any, Optional
 
 import click
 from click_shell import shell
