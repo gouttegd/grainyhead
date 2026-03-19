@@ -26,7 +26,7 @@ from fastcore.basics import AttrDict  # type: ignore
 from fastcore.net import HTTP4xxClientError  # type: ignore
 from fastcore.xtras import dict2obj, obj2dict  # type: ignore
 from ghapi.core import GhApi  # type: ignore
-from ghapi.page import date2gh  # type: ignore
+from ghapi.page import date2gh, paged  # type: ignore
 
 from .caching import CachePolicy
 
@@ -274,16 +274,9 @@ class OnlineRepositoryProvider(RepositoryProvider):
         return data
 
     def _fetch_committers(self) -> list[AttrDict]:
-        committers = self._api.repos.list_contributors(per_page=100)
-        last_page = self._api.last_page()
-        page = 0
-
-        while page < last_page:
-            page += 1
-            committers.extend(
-                self._api.repos.list_contributors(per_page=100, page=page)
-            )
-
+        committers = []
+        for page in paged(self._api.repos.list_contributors, per_page=100):
+            committers.extend(page)
         return committers
 
     def _fetch(
@@ -299,13 +292,9 @@ class OnlineRepositoryProvider(RepositoryProvider):
                 return self._fetch_since(apicall, since, apiargs)
             apiargs["since"] = date2gh(since)
 
-        things = apicall(per_page=100, **apiargs)
-        last_page = self._api.last_page()
-        page = 0
-
-        while page < last_page:
-            page += 1
-            things.extend(apicall(per_page=100, page=page, **apiargs))
+        things = []
+        for page in paged(apicall, per_page=100, **apiargs):
+            things.extend(page)
 
         return things
 
@@ -314,18 +303,12 @@ class OnlineRepositoryProvider(RepositoryProvider):
     ) -> list[AttrDict]:
         """Specialized method for items without 'since=' support."""
 
-        things = apicall(per_page=100, **apiargs)
-        last_page = self._api.last_page()
-        page = 0
-
-        loop = True
-        while loop and page < last_page:
-            if gh2date(things[-1].created_at) <= since:
+        things = []
+        for page in paged(apicall, per_page=100, **apiargs):
+            if gh2date(page[-1].created_at) <= since:
                 # Stop fetching if we got what we were looking for
-                loop = False
-            else:
-                page += 1
-                things.extend(apicall(per_page=100, page=page, **apiargs))
+                break
+            things.extend(page)
 
         # Remove everything before the cutoff timestamp
         return [i for i in things if gh2date(i.created_at) >= since]
