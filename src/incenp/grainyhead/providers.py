@@ -155,7 +155,7 @@ class CommitItem(RepositoryItem):
 
     @property
     def user_name(self) -> str:
-        if self.author is not None:
+        if self.author:
             return self.author.login
         else:
             return self.commit.author.name
