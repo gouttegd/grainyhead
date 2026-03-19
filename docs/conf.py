@@ -10,7 +10,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = u'GrainyHead'
-copyright = u'2021,2022,2023,2024,2025 Damien Goutte-Gattat'
+copyright = u'2021,2022,2023,2024,2025,2026 Damien Goutte-Gattat'
 author = u'Damien Goutte-Gattat <dgouttegattat@incenp.org>'
 
 language = 'en'

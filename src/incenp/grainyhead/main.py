@@ -39,7 +39,7 @@ from .util import Date, Interval
 prog_name = "grh"
 prog_notice = f"""\
 {prog_name} (GrainyHead {__version__})
-Copyright © 2025 Damien Goutte-Gattat
+Copyright © 2026 Damien Goutte-Gattat
 
 This program is released under the GNU General Public License.
 See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.

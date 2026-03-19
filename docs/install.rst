@@ -26,8 +26,8 @@ You may download a release tarball from the `homepage`_ or from the
 
 .. code-block:: console
 
-   $ tar zxf grainyhead-0.3.2.tar.gz
-   $ python -m pip install ./grainyhead-0.3.2
+   $ tar zxf grainyhead-0.3.3.tar.gz
+   $ python -m pip install ./grainyhead-0.3.3
 
 (You may want/need to do that in a virtual environment, to avoid messing
 with your system packages.)
@@ -60,8 +60,8 @@ running the following command:
 .. code-block:: console
 
    $ grainyhead --version
-   grainyhead (GrainyHead 0.3.2)
-   Copyright © 2024 Damien Goutte-Gattat
+   grainyhead (GrainyHead 0.3.3)
+   Copyright © 2026 Damien Goutte-Gattat
 
    This program is released under the GNU General Public License.
    See the COPYING file or <http://www.gnu.org/licenses/gpl.html>.

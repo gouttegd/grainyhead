@@ -1,3 +1,10 @@
+Changes in grainyhead-0.3.3 (2026-03-19)
+----------------------------------------
+
+  * Fix incomplete downloading of issues (caused by a GitHub API bug).
+  * Fix crash when a commit has an empty `author` key (#22).
+
+
 Changes in grainyhead-0.3.2 (2024-03-28)
 ----------------------------------------
 
