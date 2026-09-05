@@ -14,7 +14,7 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "click-shell>=2.1",
-    "ghapi",
+    "ghapi<2",
     "pyparsing>=3.0.0",
     "python-dateutil",
 ]
