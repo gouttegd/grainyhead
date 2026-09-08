@@ -17,6 +17,7 @@
 import json
 import logging
 import os.path
+from collections.abc import Generator
 from datetime import datetime
 from enum import Enum
 from os import makedirs
@@ -26,7 +27,7 @@ from fastcore.basics import AttrDict  # type: ignore
 from fastcore.net import HTTP4xxClientError  # type: ignore
 from fastcore.xtras import dict2obj, obj2dict  # type: ignore
 from ghapi.core import GhApi  # type: ignore
-from ghapi.page import date2gh, paged  # type: ignore
+from ghapi.page import date2gh, parse_link_hdr  # type: ignore
 
 from .caching import CachePolicy
 
@@ -275,9 +276,32 @@ class OnlineRepositoryProvider(RepositoryProvider):
 
     def _fetch_committers(self) -> list[AttrDict]:
         committers = []
-        for page in paged(self._api.repos.list_contributors, per_page=100):
+        for page in self._paginate(self._api.repos.list_contributors):
             committers.extend(page)
         return committers
+
+    def _paginate(
+        self, apicall: Callable, apiargs: dict = {}
+    ) -> Generator[list[AttrDict]]:
+        """Iterates over all the pages of a paginated API call.
+
+        We follow the "next" link that GitHub provides in the "Link"
+        header of each reply, rather than incrementing a page number,
+        because the API refuses page numbers beyond the 10,000th item.
+        """
+
+        page = apicall(per_page=100, **apiargs)
+        while True:
+            # The header must be read now, before the caller gets a
+            # chance to issue another call and overwrite it.
+            links = parse_link_hdr(self._api.recv_hdrs.get("Link", ""))
+            next_url = links["next"][0] if "next" in links else None
+
+            yield page
+
+            if next_url is None:
+                return
+            page = self._api(next_url)
 
     def _fetch(
         self, apicall: Callable, apiargs: dict = {}, since: Optional[datetime] = None
@@ -293,7 +317,7 @@ class OnlineRepositoryProvider(RepositoryProvider):
             apiargs["since"] = date2gh(since)
 
         things = []
-        for page in paged(apicall, per_page=100, **apiargs):
+        for page in self._paginate(apicall, apiargs):
             things.extend(page)
 
         return things
@@ -304,11 +328,11 @@ class OnlineRepositoryProvider(RepositoryProvider):
         """Specialized method for items without 'since=' support."""
 
         things = []
-        for page in paged(apicall, per_page=100, **apiargs):
-            if gh2date(page[-1].created_at) <= since:
+        for page in self._paginate(apicall, apiargs):
+            things.extend(page)
+            if len(things) > 0 and gh2date(things[-1].created_at) <= since:
                 # Stop fetching if we got what we were looking for
                 break
-            things.extend(page)
 
         # Remove everything before the cutoff timestamp
         return [i for i in things if gh2date(i.created_at) >= since]
